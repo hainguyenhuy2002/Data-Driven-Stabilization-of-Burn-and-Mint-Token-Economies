@@ -3,8 +3,7 @@
 **Authors:** Huy Hai Nguyen (Tsinghua University) · Binh Minh Nguyen (Hanoi University of Science and Technology)
 
 [![GitHub](https://img.shields.io/badge/GitHub-hainguyenhuy2002-181717?logo=github)](https://github.com/hainguyenhuy2002/Data-Driven-Stabilization-of-Burn-and-Mint-Token-Economies)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20275874.svg)](https://doi.org/10.5281/zenodo.20275874)
 
 ---
 
