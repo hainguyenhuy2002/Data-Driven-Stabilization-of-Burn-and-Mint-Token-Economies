@@ -2,6 +2,10 @@
 
 **Authors:** Huy Hai Nguyen (Tsinghua University) · Binh Minh Nguyen (Hanoi University of Science and Technology)
 
+[![GitHub](https://img.shields.io/badge/GitHub-hainguyenhuy2002-181717?logo=github)](https://github.com/hainguyenhuy2002/Data-Driven-Stabilization-of-Burn-and-Mint-Token-Economies)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
+
+
 ---
 
 ## What this is
@@ -123,8 +127,8 @@ where `M(t)` is the emission schedule and `B(P, U)` is utility-driven burn that 
 ## Installation
 
 ```bash
-git clone https://github.com/<your-username>/<this-repo>.git
-cd <this-repo>
+git clone https://github.com/hainguyenhuy2002/Data-Driven-Stabilization-of-Burn-and-Mint-Token-Economies.git
+cd Data-Driven-Stabilization-of-Burn-and-Mint-Token-Economies
 
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
@@ -468,6 +472,21 @@ latexmk -pdf -outdir=paper paper/main.tex
   note    = {Manuscript submitted for publication}
 }
 ```
+
+For the code itself, please also cite the repository:
+
+```bibtex
+@software{nguyen2025srf_code,
+  author    = {Nguyen, Huy Hai and Nguyen, Binh Minh},
+  title     = {Closed-Loop Reserve Fund and Dynamic Supply Locking
+               for Token-Mediated Marketplaces — Simulation Code},
+  year      = {2025},
+  url       = {https://github.com/hainguyenhuy2002/Data-Driven-Stabilization-of-Burn-and-Mint-Token-Economies},
+  doi       = {10.5281/zenodo.XXXXXXX}
+}
+```
+
+> Replace `10.5281/zenodo.XXXXXXX` with your actual Zenodo DOI before publishing.
 
 ---
 
