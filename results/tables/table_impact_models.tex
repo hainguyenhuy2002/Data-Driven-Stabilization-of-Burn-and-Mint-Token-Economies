@@ -1,0 +1,17 @@
+\begin{table}
+\caption{Impact-model comparison with optional liquidity shock.}
+\label{tab:impact}
+\begin{tabular}{llrrrrrr}
+\toprule
+ &  & ann_vol & max_drawdown & reserve_depletion & peak_lock & intervention_cost & slippage_cost \\
+impact_model & liquidity_shock &  &  &  &  &  &  \\
+\midrule
+\multirow[t]{2}{*}{linear} & False & 0.7946 & 0.6396 & 0.1615 & 0.5500 & 7104976.2811 & 279075.3220 \\
+ & True & 0.7932 & 0.6225 & 0.1202 & 0.5500 & 7209453.8376 & 284392.5895 \\
+\cline{1-8}
+\multirow[t]{2}{*}{amm} & False & 0.8004 & 0.6296 & 0.1266 & 0.5500 & 7221723.7894 & 288526.2406 \\
+ & True & 0.8014 & 0.6295 & 0.1195 & 0.5500 & 7210431.6198 & 288204.2357 \\
+\cline{1-8}
+\bottomrule
+\end{tabular}
+\end{table}

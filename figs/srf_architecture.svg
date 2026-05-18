@@ -1,0 +1,211 @@
+<svg viewBox="0 0 1210 645" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue, Arial, sans-serif">
+
+<!-- ===== BACKGROUND ===== -->
+<rect width="1210" height="645" fill="white"/>
+
+<!-- ===== ARROWHEADS ===== -->
+<defs>
+  <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#5C2E10"/>
+  </marker>
+</defs>
+
+<!-- ============================================================ -->
+<!--  LEFT: Marketplace State X_t                                 -->
+<!-- ============================================================ -->
+<rect x="10" y="94" width="138" height="256" rx="9" fill="#FAF0E6" stroke="#8B5030" stroke-width="1.8"/>
+<text x="79" y="116" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#2D1206">Marketplace</text>
+<text x="79" y="132" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#2D1206">State  X_t</text>
+<line x1="20" y1="139" x2="138" y2="139" stroke="#C8956A" stroke-width="0.8"/>
+<text x="79" y="157" text-anchor="middle" font-size="9" fill="#3D1C08">P_t  (token price)</text>
+<text x="79" y="173" text-anchor="middle" font-size="9" fill="#3D1C08">S_t^tot,  S_t^free,  S_t^lock</text>
+<text x="79" y="189" text-anchor="middle" font-size="9" fill="#3D1C08">θ_t  (eligible supply)</text>
+<text x="79" y="205" text-anchor="middle" font-size="9" fill="#3D1C08">R_t,  H_t  (reserve state)</text>
+<text x="79" y="221" text-anchor="middle" font-size="9" fill="#3D1C08">MC_t = P_t · S_t^free</text>
+<text x="79" y="237" text-anchor="middle" font-size="9" fill="#3D1C08">Vol_t  (daily turnover)</text>
+<text x="79" y="253" text-anchor="middle" font-size="9" fill="#3D1C08">σ_s,  σ_b  (vol. windows)</text>
+<text x="79" y="269" text-anchor="middle" font-size="9" fill="#3D1C08">Pool depth  LD_t</text>
+<text x="79" y="285" text-anchor="middle" font-size="9" fill="#3D1C08">M_t,  B_t  (BME flux)</text>
+<text x="79" y="335" text-anchor="middle" font-size="8.5" font-style="italic" fill="#8B5030">feeds all three</text>
+<text x="79" y="348" text-anchor="middle" font-size="8.5" font-style="italic" fill="#8B5030">mechanisms below</text>
+
+<!-- Arrow: left box → engine -->
+<line x1="148" y1="222" x2="161" y2="222" stroke="#5C2E10" stroke-width="1.7" marker-end="url(#a)"/>
+
+<!-- ============================================================ -->
+<!--  MAIN ENGINE CONTAINER                                        -->
+<!-- ============================================================ -->
+<rect x="160" y="28" width="1022" height="582" rx="12" fill="#FDFAF6" stroke="#4A2308" stroke-width="2.2"/>
+<text x="671" y="56" text-anchor="middle" font-size="15" font-weight="bold" fill="#2D1206">SRF Stabilization Engine</text>
+<line x1="178" y1="63" x2="1164" y2="63" stroke="#C8956A" stroke-width="0.8"/>
+
+
+<!-- ============================================================ -->
+<!--  ROW 1: RESERVE-FUNDED FEEDBACK INTERVENTION  (dark brown)  -->
+<!-- ============================================================ -->
+<rect x="175" y="68" width="977" height="162" rx="8" fill="#F9EDE2" stroke="#6B3520" stroke-width="1.3"/>
+<rect x="175" y="68" width="977" height="27" rx="8" fill="#3D1C08"/>
+<rect x="175" y="81"  width="977" height="14"  fill="#3D1C08"/>
+<text x="663" y="87" text-anchor="middle" font-size="11" font-weight="bold" fill="white">① Reserve-Funded Feedback Intervention</text>
+
+<!-- Block 1.1 -->
+<rect x="188" y="101" width="245" height="90" rx="6" fill="#6B3520"/>
+<text x="310" y="120" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">Local Ref. &amp; Signals</text>
+<text x="310" y="138" text-anchor="middle" font-size="9" fill="#FADBBC">P*_t = (1/W)∑P_{t−k},  W=7</text>
+<text x="310" y="154" text-anchor="middle" font-size="9" fill="#FADBBC">e_t = (P*_t − P_t) / P*_t</text>
+<text x="310" y="170" text-anchor="middle" font-size="9" fill="#FADBBC">v_t = (P_t − P_{t−1}) / P_{t−1}</text>
+<text x="310" y="183" text-anchor="middle" font-size="8" fill="#C8906A">7-day rolling local reference</text>
+
+<line x1="433" y1="146" x2="453" y2="146" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Block 1.2 -->
+<rect x="453" y="101" width="245" height="90" rx="6" fill="#6B3520"/>
+<text x="575" y="120" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">PD Rule + Deadband</text>
+<text x="575" y="138" text-anchor="middle" font-size="9" fill="#FADBBC">u_t = R_t(ω_p e_t − ω_d v_t)</text>
+<text x="575" y="154" text-anchor="middle" font-size="9" fill="#FADBBC">ω_p=0.10,  ω_d=4.0</text>
+<text x="575" y="170" text-anchor="middle" font-size="9" fill="#FADBBC">gate: |e_t| ≥ τ = 0.04</text>
+<text x="575" y="183" text-anchor="middle" font-size="8" fill="#C8906A">deriv.-dominated; suppresses noise</text>
+
+<line x1="698" y1="146" x2="718" y2="146" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Block 1.3 -->
+<rect x="718" y="101" width="245" height="90" rx="6" fill="#6B3520"/>
+<text x="840" y="120" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">AMM Execution + Rate Limit</text>
+<text x="840" y="138" text-anchor="middle" font-size="9" fill="#FADBBC">Constant-product  A_t B_t = k</text>
+<text x="840" y="154" text-anchor="middle" font-size="9" fill="#FADBBC">δ_rl = 0.04 max impact/day</text>
+<text x="840" y="170" text-anchor="middle" font-size="9" fill="#FADBBC">cap: reserve R_t,  inv. H_t</text>
+<text x="840" y="183" text-anchor="middle" font-size="8" fill="#C8906A">buy ↑ or sell ↓ native token</text>
+
+<line x1="963" y1="146" x2="983" y2="146" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Output 1 -->
+<rect x="983" y="109" width="120" height="74" rx="6" fill="#FAF0E6" stroke="#6B3520" stroke-width="1.6"/>
+<text x="1043" y="131" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#3D1C08">ΔP_t^SRF</text>
+<text x="1043" y="151" text-anchor="middle" font-size="9" fill="#6B3520">Price impact</text>
+<text x="1043" y="167" text-anchor="middle" font-size="8.5" fill="#8B5030">ΔR_t,  ΔH_t</text>
+
+
+<!-- ============================================================ -->
+<!--  ROW 2: VOLATILITY-TRIGGERED SUPPLY LOCKING  (medium brown) -->
+<!-- ============================================================ -->
+<rect x="175" y="240" width="977" height="162" rx="8" fill="#F9EDE2" stroke="#9A5530" stroke-width="1.3"/>
+<rect x="175" y="240" width="977" height="27" rx="8" fill="#6B3520"/>
+<rect x="175" y="253" width="977" height="14"  fill="#6B3520"/>
+<text x="663" y="259" text-anchor="middle" font-size="11" font-weight="bold" fill="white">② Volatility-Triggered Dynamic Supply Locking</text>
+
+<!-- Block 2.1 -->
+<rect x="188" y="273" width="245" height="90" rx="6" fill="#9A5530"/>
+<text x="310" y="292" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">Excess Volatility  Δσ_t</text>
+<text x="310" y="310" text-anchor="middle" font-size="9" fill="#FAE0CC">Δσ_t = max(0, σ_s − σ_b)</text>
+<text x="310" y="326" text-anchor="middle" font-size="9" fill="#FAE0CC">σ_s: short-window std. dev.</text>
+<text x="310" y="342" text-anchor="middle" font-size="9" fill="#FAE0CC">σ_b: baseline-window std. dev.</text>
+<text x="310" y="355" text-anchor="middle" font-size="8" fill="#D4A070">excess stress signal</text>
+
+<line x1="433" y1="318" x2="453" y2="318" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Block 2.2 -->
+<rect x="453" y="273" width="245" height="90" rx="6" fill="#9A5530"/>
+<text x="575" y="292" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">Lock Ratio &amp; Escrow</text>
+<text x="575" y="310" text-anchor="middle" font-size="9" fill="#FAE0CC">ℓ_t = min(ℓ_max, γ · Δσ_t)</text>
+<text x="575" y="326" text-anchor="middle" font-size="9" fill="#FAE0CC">S_t^{lock,*} = ℓ_t · θ_t · S_t^tot</text>
+<text x="575" y="342" text-anchor="middle" font-size="9" fill="#FAE0CC">θ_t: opted-in eligible share</text>
+<text x="575" y="355" text-anchor="middle" font-size="8" fill="#D4A070">treasury + staking + LP</text>
+
+<line x1="698" y1="318" x2="718" y2="318" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Block 2.3 -->
+<rect x="718" y="273" width="245" height="90" rx="6" fill="#9A5530"/>
+<text x="840" y="292" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">Free-Float Dampening</text>
+<text x="840" y="310" text-anchor="middle" font-size="9" fill="#FAE0CC">r_t^eff = r_t^mkt · (1 − λ_t)</text>
+<text x="840" y="326" text-anchor="middle" font-size="9" fill="#FAE0CC">λ_t = S_t^lock / S_t^tot</text>
+<text x="840" y="342" text-anchor="middle" font-size="9" fill="#FAE0CC">thaw rate ζ on recovery</text>
+<text x="840" y="355" text-anchor="middle" font-size="8" fill="#D4A070">not burned — escrow only</text>
+
+<line x1="963" y1="318" x2="983" y2="318" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Output 2 -->
+<rect x="983" y="281" width="120" height="74" rx="6" fill="#FAF0E6" stroke="#9A5530" stroke-width="1.6"/>
+<text x="1043" y="303" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#3D1C08">λ_t,  S_t^lock</text>
+<text x="1043" y="323" text-anchor="middle" font-size="9" fill="#6B3520">Free-float</text>
+<text x="1043" y="339" text-anchor="middle" font-size="8.5" fill="#8B5030">reduction</text>
+
+
+<!-- ============================================================ -->
+<!--  ROW 3: DYNAMIC RESERVE-REFILLING TAX  (golden brown)       -->
+<!-- ============================================================ -->
+<rect x="175" y="412" width="977" height="162" rx="8" fill="#F9EDE2" stroke="#C07840" stroke-width="1.3"/>
+<rect x="175" y="412" width="977" height="27" rx="8" fill="#9A5530"/>
+<rect x="175" y="425" width="977" height="14"  fill="#9A5530"/>
+<text x="663" y="431" text-anchor="middle" font-size="11" font-weight="bold" fill="white">③ Dynamic Reserve-Refilling Tax</text>
+
+<!-- Block 3.1 -->
+<rect x="188" y="445" width="245" height="90" rx="6" fill="#C07840"/>
+<text x="310" y="464" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">Reserve Gap</text>
+<text x="310" y="482" text-anchor="middle" font-size="9" fill="#FEF0DC">R*_t = ρ · MC_t</text>
+<text x="310" y="498" text-anchor="middle" font-size="9" fill="#FEF0DC">gap = max(0, 1 − R_t/R*_t)</text>
+<text x="310" y="514" text-anchor="middle" font-size="9" fill="#FEF0DC">ρ: target reserve ratio</text>
+<text x="310" y="527" text-anchor="middle" font-size="8" fill="#D4A070">zero tax if R_t ≥ R*_t</text>
+
+<line x1="433" y1="490" x2="453" y2="490" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Block 3.2 -->
+<rect x="453" y="445" width="245" height="90" rx="6" fill="#C07840"/>
+<text x="575" y="464" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">Dynamic Tax Rate  η_t</text>
+<text x="575" y="482" text-anchor="middle" font-size="9" fill="#FEF0DC">η_t = η_max · max(0, 1−R_t/R*_t)</text>
+<text x="575" y="498" text-anchor="middle" font-size="9" fill="#FEF0DC">η_max = 0.05  (5% cap)</text>
+<text x="575" y="514" text-anchor="middle" font-size="9" fill="#FEF0DC">levied on marketplace txns</text>
+<text x="575" y="527" text-anchor="middle" font-size="8" fill="#D4A070">smooth, user-visible cost</text>
+
+<line x1="698" y1="490" x2="718" y2="490" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Block 3.3 -->
+<rect x="718" y="445" width="245" height="90" rx="6" fill="#C07840"/>
+<text x="840" y="464" text-anchor="middle" font-size="9.5" font-weight="bold" fill="white">Tax Inflow &amp; Reserve Update</text>
+<text x="840" y="482" text-anchor="middle" font-size="9" fill="#FEF0DC">ΔR_t^tax = η_t · Vol_t · MC_t</text>
+<text x="840" y="498" text-anchor="middle" font-size="9" fill="#FEF0DC">R_{t+1} = R_t + ΔR_t^tax − |u_t|</text>
+<text x="840" y="514" text-anchor="middle" font-size="9" fill="#FEF0DC">applied before intervention</text>
+<text x="840" y="527" text-anchor="middle" font-size="8" fill="#D4A070">self-financing mechanism</text>
+
+<line x1="963" y1="490" x2="983" y2="490" stroke="#5C2E10" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- Output 3 -->
+<rect x="983" y="453" width="120" height="74" rx="6" fill="#FAF0E6" stroke="#C07840" stroke-width="1.6"/>
+<text x="1043" y="475" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#3D1C08">ΔR_t^tax</text>
+<text x="1043" y="495" text-anchor="middle" font-size="9" fill="#6B3520">Reserve</text>
+<text x="1043" y="511" text-anchor="middle" font-size="8.5" fill="#8B5030">replenishment</text>
+
+
+<!-- ============================================================ -->
+<!--  PRICE UPDATE STRIP                                           -->
+<!-- ============================================================ -->
+<rect x="175" y="581" width="977" height="21" rx="5" fill="#F4E4CC" stroke="#8B5030" stroke-width="1"/>
+<text x="663" y="596" text-anchor="middle" font-size="9.5" fill="#2D1206">
+  <tspan font-weight="bold">Price Update: </tspan>
+  <tspan>P_{t+1} = max[ P_t · (1 + r_t^eff + ΔP_t^SRF),  ε ]     where     r_t^eff = r_t^mkt · (1 − λ_t)</tspan>
+</text>
+
+
+<!-- ============================================================ -->
+<!--  CLOSED-LOOP FEEDBACK ARROW                                  -->
+<!-- ============================================================ -->
+<path d="M 1182 440 L 1202 440 L 1202 630 L 79 630 L 79 350"
+      fill="none" stroke="#5C2E10" stroke-width="1.8"
+      stroke-dasharray="8,4" marker-end="url(#a)"/>
+<text x="640" y="622" text-anchor="middle" font-size="9" fill="#7B4020" font-style="italic">Closed-loop feedback:  updated state X_{t+1} becomes input at next step t+1</text>
+
+
+<!-- ============================================================ -->
+<!--  LEGEND                                                       -->
+<!-- ============================================================ -->
+<rect x="10" y="382" width="140" height="100" rx="7" fill="#FAF0E6" stroke="#8B5030" stroke-width="1.3"/>
+<text x="80" y="402" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#2D1206">Color Legend</text>
+<rect x="20" y="412" width="13" height="10" rx="2" fill="#3D1C08"/>
+<text x="40" y="421" font-size="8.5" fill="#2D1206">Reserve Intervention</text>
+<rect x="20" y="429" width="13" height="10" rx="2" fill="#6B3520"/>
+<text x="40" y="438" font-size="8.5" fill="#2D1206">Supply Locking</text>
+<rect x="20" y="446" width="13" height="10" rx="2" fill="#9A5530"/>
+<text x="40" y="455" font-size="8.5" fill="#2D1206">Dynamic Tax</text>
+<rect x="20" y="463" width="13" height="10" rx="2" fill="#C07840"/>
+<text x="40" y="472" font-size="8.5" fill="#2D1206">Output / State</text>
+
+</svg>

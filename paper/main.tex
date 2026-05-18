@@ -1,0 +1,1363 @@
+%% 
+%% Copyright 2019-2024 Elsevier Ltd
+%% 
+%% Version 2.4
+%% 
+%% This file is part of the 'CAS Bundle'.
+%% --------------------------------------
+%% 
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.2 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%% 
+%% The list of all files belonging to the 'CAS Bundle' is
+%% given in the file `manifest.txt'.
+%%
+%% Template article for cas-dc documentclass for 
+%% double column output.
+
+%\documentclass[a4paper,fleqn,longmktitle]{cas-dc}
+\documentclass[a4paper,fleqn]{cas-dc}
+%\usepackage[authoryear,longnamesfirst]{natbib}
+%\usepackage[authoryear]{natbib}
+\usepackage[numbers]{natbib}
+\usepackage{svg}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{placeins}
+
+\colorlet{LightRubineRed}{RubineRed!70}
+\colorlet{Mycolor1}{blue!10!blue}
+
+%%%Author definitions
+\def\tsc#1{\csdef{#1}{\textsc{\lowercase{#1}}\xspace}}
+\tsc{WGM}
+\tsc{QE}
+\tsc{EP}
+\tsc{PMS}
+\tsc{BEC}
+\tsc{DE}
+%%%
+
+\begin{document}
+\let\WriteBookmarks\relax
+\def\floatpagepagefraction{1}
+\def\textpagefraction{.001}
+\shorttitle{}
+\shortauthors{H.H. Nguyen et~al.}
+
+\title [mode = title]{Stabilizing Token-Mediated Digital Marketplaces through Closed-Loop Reserve Funds and Dynamic Supply Locking}                      
+
+\author[1]{Huy Hai Nguyen}[orcid=0009-0007-2083-5928]
+\ead{hainguynhuy@gmail.com}
+
+\author[2]{Binh Minh Nguyen}[orcid=0000-0003-1328-3647]
+\cormark[1]
+
+\ead{minh.nguyenbinh@hust.edu.vn}
+
+\affiliation[1]{Tsinghua University}
+\affiliation[2]{Hanoi University of Science and Technology}
+%\affiliation[3]{Institute for Digital Technology and Economy, Hanoi University of Science and Technology}
+\cortext[cor1]{Corresponding Author}
+
+\begin{abstract}
+Token-mediated digital marketplaces increasingly use native tokens as payment, incentive, and coordination instruments for decentralized services such as data, storage, compute, and liquidity provision. However, when these tokens follow burn-and-mint or BME-like economic designs, adverse price movements can propagate into transaction uncertainty, supplier withdrawal, liquidity deterioration, and self-reinforcing volatility spirals. This paper develops and evaluates a closed-loop Stabilization Reserve Fund (SRF) for token-mediated digital marketplaces. The SRF combines reserve-funded feedback intervention, volatility-triggered dynamic supply locking, intervention safeguards, and a self-financing tax that replenishes reserve capacity when needed.
+
+Using engineered crash simulations, controller ablations, a recent high-volatility historical token-panel backtest, eligible-supply sensitivity analysis, and economic cost metrics, we examine whether SRF-based stabilization can reduce short-horizon drawdowns while making intervention costs explicit. Under the upper-bound eligible-supply setting \((\theta=1.00)\), the Full SRF reduces rolling 14-day drawdown by \(17.6\%\), the worst one-day drop by \(18.6\%\), and global maximum drawdown by \(22.5\%\) in the benchmark crash setting. Under a more practical partial-opt-in setting \((\theta=0.50)\), it still reduces rolling drawdown by \(11.8\%\). Across the tested well-fit panel tokens and stress settings, the results show promising robustness, with average rolling-drawdown reduction reaching approximately \(26\%\) in the well-fit token subset. The findings suggest that SRF-based stabilization is best understood as a marketplace-governance instrument rather than an algorithmic peg, with explicit trade-offs among market protection, liquidity access, reserve solvency, taxation, and price discovery.
+\end{abstract}
+
+%\begin{graphicalabstract}
+%\includegraphics{figs/cas-grabs.pdf}
+%\end{graphicalabstract}
+
+% \begin{highlights}
+% \item Research highlights item 1
+% \item Research highlights item 2
+% \item Research highlights item 3
+% \end{highlights}
+
+\begin{keywords}
+Token-mediated marketplaces; decentralized commerce; stabilization reserve fund; dynamic supply locking; DeFi market design; platform governance; price stability.
+
+\end{keywords}
+
+
+\maketitle
+\section{Introduction}
+\label{sec:introduction}
+
+Digital marketplaces increasingly rely on native tokens to coordinate payments, incentives, governance, and resource allocation among distributed participants. In decentralized service markets such as storage, compute, data, oracle, and liquidity-provision platforms, tokens are not merely speculative assets; they function as settlement media, reward instruments, and coordination devices between users, suppliers, liquidity providers, and protocol treasuries. This token-mediated architecture creates new opportunities for electronic commerce by reducing reliance on centralized intermediaries and enabling programmable market rules. At the same time, it exposes marketplace operations to token-price instability. When the value of the native token changes abruptly, users face uncertain service prices, suppliers face unstable compensation, liquidity providers reassess their exposure, and governance participants may lose confidence in the platform's economic viability.
+
+Price instability is therefore not only a financial-market issue but also a marketplace-design problem. In conventional electronic marketplaces, platform operators can rely on fiat-denominated pricing, centralized treasury management, or contractual mechanisms to absorb short-run shocks. In token-mediated marketplaces, however, market confidence, service affordability, liquidity depth, and supplier participation are often linked to the same native token. A sharp token-price decline can reduce the purchasing power of protocol rewards, trigger liquidity withdrawal, weaken user trust, and amplify sell pressure. Conversely, an excessive price increase may distort service pricing, induce speculative demand, and destabilize the supply side of the marketplace. These feedback loops are particularly relevant for decentralized platforms in which stabilization cannot be imposed through a centralized market maker or discretionary off-chain intervention.
+
+Burn-and-Mint Equilibrium (BME) and BME-like token economies illustrate this challenge. In a typical BME design, tokens are burned when users consume platform services and minted or emitted to reward suppliers, validators, liquidity providers, or other contributors. This mechanism can align token supply with marketplace activity and has been discussed in the broader literature on token economics, algorithmic stablecoins, and decentralized platform design \cite{klages2020stablecoins,cong2021tokenomics,sockin2023decentralization}. However, BME mechanisms are often open-loop: they adjust supply according to protocol rules but do not necessarily react adaptively to short-run market stress. Under adverse demand shocks, declining prices may interact with emissions, reduced utility demand, and deteriorating liquidity, producing self-reinforcing volatility spirals. The collapse of TerraUSD and Luna demonstrates how fragile algorithmic token systems can become when confidence, liquidity, and supply adjustment move in the same destabilizing direction \cite{terra_anatomy}.
+
+Existing stabilization approaches only partially address this problem. Over-collateralized stablecoins rely on external collateral and liquidation mechanisms, but they can be capital-inefficient and vulnerable to oracle, liquidity, and liquidation risks. Seigniorage-style algorithmic stablecoins and BME protocols adjust supply through predetermined rules, but such open-loop mechanisms may amplify rather than dampen shocks when market confidence deteriorates. Passive reserve funds can accumulate treasury assets, but threshold-based interventions are often reactive and insensitive to changing volatility conditions. Redemption-price controllers, such as those used in some non-pegged stablecoin designs, introduce feedback through a system-internal exchange rate, but they are less applicable to general-purpose marketplace tokens without a redemption mechanism \cite{rai_pid_analysis,flatcoin_control_theory,strohmeyer2024improving}. These approaches leave an important gap: token-mediated marketplaces need an adaptive stabilization mechanism that can reduce short-horizon drawdowns, preserve reserve capacity, and make the user-facing cost of intervention explicit.
+
+This paper addresses that gap by developing and evaluating a closed-loop Stabilization Reserve Fund (SRF) for token-mediated digital marketplaces. The SRF is designed as a short-horizon market-stabilization layer rather than as an algorithmic peg or a replacement for the marketplace's underlying fundamentals. It observes recent price movements and market stress signals, then determines whether and how the reserve should intervene in the native-token market. Instead of attempting to fix the token price at a predetermined level, the SRF aims to dampen abrupt short-window movements while allowing long-run price discovery to remain governed by marketplace fundamentals.
+
+The SRF combines four mutually reinforcing mechanisms. First, a reserve-funded feedback rule adjusts market intervention according to price deviation and price momentum. Second, a dynamic supply-locking mechanism temporarily reduces the effective free float when short-window volatility rises above a longer-run baseline. This lock applies only to eligible supply, such as treasury holdings, opted-in staking positions, or enrolled liquidity-provider positions; it does not confiscate retail holdings or permanently remove tokens from circulation. Third, intervention safeguards, including deadband and rate-limiting logic, constrain excessive actuation and reduce the risk that the stabilization mechanism itself creates additional volatility. Fourth, a dynamic tax replenishes reserve capacity when the reserve falls below its target level, making stabilization partly self-financing while exposing its cost to marketplace participants.
+
+The central idea is that stabilization should be treated as a governance and market-design problem, not simply as a trading rule. Reserve intervention can provide direct market support, but reserve trading alone may be expensive and quickly depleted during stress. Supply locking can reduce effective market force, but it creates liquidity frictions and may distort price discovery. A dynamic tax can replenish reserves, but it imposes a cost on marketplace activity. The SRF therefore creates a tunable trade-off among drawdown protection, liquidity access, reserve solvency, taxation, and price discovery. This trade-off is directly relevant to decentralized marketplace operators, protocol treasuries, and governance communities that must choose whether, when, and how aggressively to intervene in token markets.
+
+We study three research questions:
+
+\begin{description}
+    \item[RQ1:] Can a closed-loop reserve fund reduce short-horizon drawdowns in token-mediated marketplaces without exhausting reserve capacity?
+    \item[RQ2:] How much of the stabilization effect comes from reserve trading, dynamic supply locking, and reserve-refilling taxation?
+    \item[RQ3:] What user-facing costs arise from stabilization in terms of tax burden, liquidity lock-up, intervention turnover, reserve utilization, and price-discovery distortion?
+\end{description}
+
+To answer these questions, we build a discrete-time simulation and backtesting framework for BME and BME-like token economies. The system state includes price, supply, and reserve balance, while the stabilization engine maps observed market signals into reserve trades, supply-locking decisions, and tax-based reserve replenishment. We evaluate the mechanism through engineered crash simulations, controller ablations, historical token-panel backtests, BME-regime stress tests, and robustness checks. The ablation design compares the full SRF against no intervention, passive threshold intervention, proportional-only control, feedback trading without supply locking, lock-only intervention, and SRF without dynamic taxation. This allows us to identify which components are responsible for drawdown reduction, volatility compression, reserve depletion, and intervention cost.
+
+The results show that the SRF is most effective as a drawdown-protection mechanism rather than as a pure volatility-minimization tool. In the benchmark engineered-crash setting and under the upper-bound eligible-supply configuration \((\theta=1.00)\), the full SRF reduces rolling 14-day drawdown by \(17.6\%\), the worst one-day drop by \(18.6\%\), and global maximum drawdown by \(22.5\%\), while maintaining a positive reserve balance. Under a more practical partial-opt-in configuration \((\theta=0.50)\), the mechanism still reduces rolling drawdown by \(11.8\%\). Across the tested well-fit panel tokens and stress settings, the results show promising robustness, with rolling-drawdown reduction reaching approximately \(26\%\) in the well-fit token subset. The ablation results show that reserve trading without supply locking can be costly and reserve-depleting, while lock-only intervention compresses short-window volatility but is less effective at protecting against large directional drawdowns. The full SRF improves the drawdown--solvency trade-off by combining market intervention, free-float dampening, and reserve replenishment.
+
+The analysis also shows that stabilization is not free. The SRF imposes measurable user-facing costs through dynamic taxation, liquidity restrictions, intervention turnover, and price-discovery distortion. These costs are not secondary implementation details; they are central governance variables. A protocol that prioritizes aggressive drawdown protection may accept higher lock-induced illiquidity or stronger price-discovery distortion, whereas a protocol that prioritizes open liquidity may choose a lower lock cap, a smaller reserve target, or a more conservative intervention rule. By quantifying these trade-offs, this paper contributes not only a stabilization mechanism but also a decision framework for marketplace governance.
+
+This study makes four contributions. First, it formulates token-price stabilization as a market-design problem for token-mediated digital marketplaces, connecting BME token economics with the broader electronic-commerce concern of transaction reliability and platform trust. Second, it develops a closed-loop SRF architecture that integrates reserve-funded feedback intervention, volatility-triggered dynamic supply locking, intervention safeguards, and self-financing reserve replenishment. Third, it evaluates the mechanism through simulations, historical token-panel backtests, controller ablations, and robustness checks, thereby separating the effects of reserve trading, supply locking, and taxation. Fourth, it quantifies the economic cost of stabilization using governance-relevant metrics, including tax burden, reserve utilization, lock duration, intervention turnover, and price-discovery distortion.
+
+The remainder of the paper is organized as follows. 
+Section~\ref{sec:relatedwork} reviews related work on token-mediated marketplaces, platform trust, algorithmic stablecoins, BME token economies, reserve-fund stabilization, and liquidity-friction governance. 
+Section~\ref{sec:methodology} presents the SRF model, including the system state, closed-loop intervention rule, dynamic supply-locking mechanism, reserve-refilling tax, and implementation safeguards. 
+Section~\ref{sec:experiments} describes the experimental design, datasets, baselines, evaluation metrics, robustness checks, and economic cost analysis. 
+Section~\ref{sec:discussion} discusses governance implications, market-design trade-offs, user-facing costs, limitations, and deployment risks. 
+Section~\ref{sec:conclusion} concludes the paper.
+
+\section{Related Work}
+\label{sec:relatedwork}
+
+This section positions the proposed Stabilization Reserve Fund (SRF) within four streams of literature: token-mediated digital marketplaces and platform trust, algorithmic stablecoins and Burn-and-Mint Equilibrium (BME) token economies, reserve-fund and control-theoretic stabilization, and liquidity-friction governance in decentralized markets. This structure reflects the central framing of the paper: token-price stabilization is not only a technical problem in decentralized finance, but also a market-design problem for electronic marketplaces whose payment, incentive, governance, and coordination functions depend on a native token.
+
+\subsection{Token-Mediated Digital Marketplaces and Platform Trust}
+
+Recent electronic-commerce research increasingly treats digital platforms and ecosystems as infrastructures for value creation, coordination, governance, and market transformation \citep{cuel2024transformation,kari2025networkgovernance}. In electronic marketplaces, platform performance depends not only on the number of participants, but also on the credibility of market signals, the quality of providers, the reliability of transaction mechanisms, and the governance rules that align participants' incentives. Empirical research on e-commerce platforms shows that online sales are shaped by platform-specific information and trust signals, including ratings, market share, clickstream intensity, and price sensitivity \citep{dai2022onlineplatforms}. Platform-economics research further shows that two-sided platforms may compete through quality-based subsidization, because users value both the quantity and quality of participants on the other side of the market \citep{fu2022qualitysubsidization}.
+
+Trust is particularly important in digitally mediated transactions because participants often face information asymmetry, platform dependence, and uncertainty about the behavior of counterparties. In digital labor platforms, for example, trust among platform-dependent entrepreneurs, clients, and platform intermediaries is shaped by transaction-cost concerns and by the governance conditions under which work is exchanged \citep{yao2022platformtrust}. Recent work on platform governance also shows that inconsistent rule enforcement can erode complementors' trust and trigger misconduct contagion within digital ecosystems \citep{gawer2025inconsistentgovernance}. These findings suggest that platform governance is not simply a background institutional feature; it directly affects participant confidence, compliance, and the sustainability of marketplace interactions. 
+
+Token-mediated marketplaces introduce an additional layer of complexity. In conventional e-commerce platforms, platform rules, pricing mechanisms, trust-building tools, and payment instruments are usually separable. In decentralized token-mediated marketplaces, however, the native token may simultaneously serve as a payment instrument, reward mechanism, governance stake, liquidity asset, and treasury exposure. This means that token-price instability can propagate into user trust, supplier participation, liquidity provision, governance confidence, and service demand. A sharp token-price decline may reduce the purchasing power of protocol rewards, weaken supplier incentives, and trigger liquidity withdrawal; excessive appreciation may distort service pricing and attract speculative demand rather than utility-driven participation. For token-mediated marketplaces, price stability becomes part of the transaction infrastructure because the medium of exchange, reward unit, liquidity asset, and governance stake are bundled into the same native token. A stabilization mechanism in this setting is therefore not merely a financial backstop; it is also a platform-governance instrument that affects transaction reliability, supplier confidence, and participant coordination.
+
+The present paper builds on the platform-economics and digital-trust literature by examining how a protocol-level stabilization mechanism can support transactional reliability in token-mediated digital marketplaces. Whereas prior electronic-commerce studies explain how platform governance, trust signals, provider quality, and two-sided incentives affect market outcomes, they do not address the specific stabilization problem that arises when the medium of payment, incentive alignment, and governance participation are all tied to a volatile native token. This motivates the need for a cost-aware stabilization layer that can dampen short-horizon market stress while preserving long-run price discovery.
+
+\subsection{Algorithmic Stablecoins and BME Token Economies}
+
+Algorithmic stablecoins have been extensively studied as attempts to achieve price stability without full external backing. Early designs include rebasing tokens and seigniorage-share systems, while later models introduce more elaborate minting, burning, and incentive mechanisms \citep{wang2023rational,learning2025terra,castello2025digital,gregory2024break,svb2024machine,klages2020stablecoins}. These systems are relevant to the present study because they expose a recurring weakness of open-loop token supply adjustment: when confidence deteriorates, protocol rules intended to stabilize supply may instead amplify panic selling and liquidity withdrawal.
+
+Empirical and theoretical studies of algorithmic stablecoin failures provide important cautionary evidence. \citet{wang2023rational} model algorithmic stablecoins as rational Ponzi games and show that systems without credible external stabilizers are vulnerable to negative sentiment. Transaction-level and post-mortem analyses of Iron Finance and TerraUSD similarly show how fragile algorithmic stabilization can become when redemption expectations, liquidity depth, and token supply adjustment interact in a destabilizing direction \citep{castello2025digital,gregory2024break,terra_anatomy}. These failures illustrate a broader design problem: purely endogenous supply adjustment may be insufficient when market confidence and liquidity collapse simultaneously.
+
+BME and BME-like token economies generalize this problem beyond stablecoins. In such systems, tokens are typically burned when users consume platform services and minted or emitted to reward suppliers, validators, liquidity providers, or other contributors. This creates a market-clearing logic between service demand and contributor incentives. \citet{klages2020stablecoins} provide a taxonomy of algorithmic stabilization designs and show that open-loop supply mechanisms are vulnerable to demand shocks without an exogenous stabilizing force. \citet{lyons2023stablecoins} empirically examine what sustains stablecoin price stability and identify reserve quality, arbitrage capacity, and secondary market depth as central factors. Together with the token-economics results of \citet{cong2021tokenomics} and \citet{sockin2023decentralization}, this literature motivates the need for a stabilization layer that complements, rather than replaces, the underlying BME tokenomics.
+
+However, existing BME and algorithmic-stablecoin studies primarily focus on supply adjustment, redemption incentives, or equilibrium properties. They provide limited guidance for token-mediated marketplaces that require adaptive, short-horizon intervention without imposing a fixed peg. The SRF differs from algorithmic stablecoin mechanisms in this respect: it is designed as a drawdown-dampening and reserve-management layer, not as a promise to maintain a predetermined price level.
+
+\subsection{Reserve Funds and Control-Theoretic Stabilization}
+
+Reserve funds have emerged as a practical backstop for stablecoins and decentralized protocols. In reserve-backed stablecoin systems, transparent and liquid reserves can improve market confidence and reduce the probability of destabilizing runs. \citet{lyons2023stablecoins} show that reserve quality and secondary market liquidity are key determinants of stablecoin price stability. \citet{bertsch2026runs} analyzes stablecoin design under minting and redemption flows and shows that issuers may have incentives to hold illiquid reserve assets in the absence of appropriate constraints. These findings support the idea that reserve design is not merely an accounting issue; it is a core part of market stability and user trust.
+
+In parallel, formal and simulation-based studies have examined how feedback, endogenous supply adjustment, and collateral dynamics affect stablecoin stability. \citet{zhao2021volatility} model and verify algorithmic-stablecoin mechanisms and show that protocol-level design choices can create volatility even when the stated objective is price stabilization. \citet{klages2022while} develop a stochastic model of noncustodial stablecoins and characterize stable and unstable regimes under collateralized leverage and liquidation feedback. Recent simulation-based work on Terra-Luna further shows that stabilization mechanisms must be evaluated under stress conditions rather than only under normal demand regimes \citep{calandra2025terra}.
+
+These studies demonstrate the value of formal modeling and stress testing in decentralized monetary systems. Nevertheless, they differ from the problem considered here in three important ways. First, most existing stablecoin models focus on redemption-price adjustment, collateral dynamics, or endogenous supply rules, whereas the SRF conducts reserve-funded market intervention. Second, existing models are generally designed for stablecoins with redemption or collateral mechanisms, not for general-purpose marketplace tokens whose value is tied to service demand and platform participation. Third, prior models rarely integrate direct reserve trading with dynamic free-float dampening and a reserve-refilling tax. The SRF addresses these limitations by combining feedback-based reserve trading, volatility-triggered supply locking, intervention safeguards, and self-financing reserve replenishment.
+
+\begin{table*}[htbp]
+\centering
+\caption{Positioning of the proposed SRF relative to existing stabilization and market-design approaches.}
+\label{tab:related_comparison}
+\begin{tabular}{|p{3.2cm}|p{3.7cm}|p{4.0cm}|p{4.1cm}|}
+\hline
+\textbf{Literature stream} & \textbf{Main focus} & \textbf{Relevance to token-mediated marketplaces} & \textbf{Remaining gap addressed by SRF} \\
+\hline
+Token economics and platform tokenization & Token adoption, participation incentives, platform value, and utility-token equilibrium. & Explains why native-token value affects users, suppliers, governance participants, and marketplace activity. & Does not provide an operational mechanism for short-horizon stabilization under market stress. \\
+\hline
+Algorithmic stablecoins and BME models & Mint/burn rules, rebasing, seigniorage shares, redemption incentives, and failure modes. & Shows how endogenous supply adjustment can amplify confidence shocks and liquidity deterioration. & Often open-loop or redemption-dependent; limited guidance for non-pegged marketplace tokens. \\
+\hline
+Reserve funds and control-theoretic stabilization & Reserve backing, redemption-price control, PID-like mechanisms, and model predictive stabilization. & Demonstrates the value of feedback and reserve quality for market confidence. & Typically focuses on stablecoins; rarely combines direct reserve trading with supply locking and explicit user-cost accounting. \\
+\hline
+Liquidity, liquidation, and AMM market-impact studies & Slippage, liquidation cascades, market depth, and liquidity-driven price dislocation. & Highlights why intervention must account for market depth, execution limits, and liquidity shocks. & Mostly reactive or diagnostic; not designed as a preventive stabilization layer for marketplace tokens. \\
+\hline
+Game-theoretic and governance models & Strategic behavior, equilibrium analysis, MEV, coordination, and protocol security. & Clarifies that participants respond strategically to taxes, locks, incentives, and intervention rules. & Mostly descriptive or equilibrium-oriented; does not prescribe a cost-aware closed-loop intervention mechanism. \\
+\hline
+\textbf{Our SRF} & Closed-loop reserve intervention, dynamic supply locking, safeguards, and reserve-refilling tax. & Treats stabilization as a market-design and governance problem for token-mediated digital marketplaces. & Provides an integrated, empirically evaluated mechanism that quantifies drawdown reduction together with tax, liquidity, reserve, and price-discovery costs. \\
+\hline
+\end{tabular}
+\end{table*}
+
+\subsection{Liquidity Frictions, Supply Locking, and Governance Costs}
+
+A separate stream of DeFi research examines liquidity frictions, liquidations, and market-impact mechanisms. \citet{perez2021liquidations} systematically characterize DeFi liquidation mechanisms and show that hard liquidations can create destabilizing feedback loops through forced selling. \citet{xu2023sok} survey decentralized exchange architectures and explain how automated market maker (AMM) liquidity, slippage, and collateral liquidations interact to amplify price dislocations. This literature is important for SRF design because reserve intervention is only meaningful if market impact, liquidity depth, and execution constraints are explicitly considered.
+
+Dynamic collateral and liquidation mechanisms are also related to the proposed supply-locking component, but their objectives differ. Liquidation mechanisms are usually reactive: they operate after a borrower becomes undercollateralized and are designed to protect lending protocols. By contrast, dynamic supply locking in the SRF is preventive and marketplace-oriented: it temporarily reduces the effective free float of eligible supply during volatility spikes so that the reserve does not need to absorb the entire shock through trading. The mechanism therefore functions as a governance-controlled liquidity friction rather than a lending-market liquidation rule.
+
+Game-theoretic analyses further clarify the strategic nature of decentralized-market stabilization. More broadly, blockchain systems have been widely studied through game-theoretic models of incentives, security, and resource allocation \citep{liu2019blockchain_game}. In DeFi, strategic behavior is particularly visible in liquidity provision and transaction ordering. \citet{defi_pools_game_theory} model liquidity-provider incentives in concentrated-liquidity market makers, while \citet{mev_game_theory} analyze strategic interactions in MEV supply chains. These studies highlight that protocol participants respond strategically to taxes, locks, incentives, execution rules, and information. These studies highlight that protocol participants respond strategically to incentives, constraints, and information. However, they are primarily descriptive or equilibrium-oriented. They do not provide an operational stabilization mechanism that tells a protocol how to intervene, how much reserve to use, how to limit liquidity restrictions, or how to quantify the user-facing cost of stabilization.
+
+For marketplace design, the cost dimension is central. Stabilization can reduce drawdowns and protect transactional reliability, but it may impose taxes, restrict liquidity, increase intervention turnover, and distort price discovery. The proposed SRF therefore treats stabilization as a governance trade-off rather than a free technical improvement. This distinguishes the present study from work that focuses only on depeg avoidance, liquidation safety, or equilibrium existence.
+
+\subsection{Research Gap and Positioning}
+
+The literature has made significant progress in explaining token adoption, platform tokenization, stablecoin fragility, reserve design, feedback control, liquidity frictions, and strategic behavior in DeFi. However, these contributions remain fragmented when viewed from the perspective of token-mediated digital marketplaces. Existing marketplace and token-economics studies explain why native-token value matters for platform participation, but they do not propose a short-horizon stabilization layer. Algorithmic stablecoin and BME studies analyze supply adjustment and failure modes, but they often rely on open-loop mechanisms or redemption assumptions. Reserve and control-theoretic approaches introduce feedback, but they are mostly designed for stablecoins and do not combine reserve trading with dynamic free-float dampening. Liquidity and game-theoretic studies reveal important market frictions, but they do not translate those insights into a cost-aware intervention framework for marketplace governance.
+
+Table~\ref{tab:related_comparison} summarizes the resulting gap. The SRF is positioned as a closed-loop, cost-aware stabilization layer for token-mediated digital marketplaces. It does not replace the underlying tokenomics or impose a fixed peg. Instead, it combines reserve-funded feedback intervention, dynamic supply locking, intervention safeguards, and reserve-refilling taxation to reduce short-horizon drawdowns while making the governance cost of stabilization explicit.
+
+This positioning leads to two design principles. First, stabilization should preserve long-run marketplace price discovery rather than impose a hard peg. Second, stabilization should be evaluated not only by volatility or drawdown reduction, but also by its user-facing costs. The following section formalizes the SRF architecture and defines the intervention, supply-locking, reserve-refilling, and market-impact mechanisms used in the empirical evaluation.
+
+\section{Methodology}
+\label{sec:methodology}
+
+This section formalizes the Stabilization Reserve Fund (SRF) as a closed-loop, cost-aware stabilization layer for token-mediated digital marketplaces. The SRF is designed to operate as a short-horizon circuit breaker: it reacts to abrupt market stress, dampens excessive free-float pressure, and replenishes reserve capacity when intervention capital has been used. The methodology consists of four components: the marketplace state model, the SRF stabilization engine, the daily implementation scheme, and a local unsaturated stability analysis.
+
+\subsection{Marketplace State and BME Supply Model}
+\label{subsec:state_model}
+
+We model the marketplace in discrete daily time indexed by $t=0,1,\ldots,T$. The state vector is
+\begin{equation}
+\mathbf{X}_t =
+\left[
+P_t,\,
+S_t^{\mathrm{tot}},\,
+S_t^{\mathrm{free}},\,
+S_t^{\mathrm{lock}},\,
+R_t,\,
+H_t
+\right]^{\top},
+\label{eq:state_vector}
+\end{equation}
+where $P_t$ is the native-token spot price, $S_t^{\mathrm{tot}}$ is total circulating supply before temporary escrow restrictions, $S_t^{\mathrm{free}}$ is the tradable free-float supply, $S_t^{\mathrm{lock}}$ is the quantity temporarily locked in protocol escrow, $R_t$ is the SRF's stable-asset reserve, and $H_t$ is the SRF's native-token inventory. Including $H_t$ makes the reserve-trading mechanism explicit: when the SRF buys the native token, it spends stable assets and accumulates token inventory; when it sells, it reduces token inventory and replenishes the stable-asset reserve.
+
+The marketplace capitalization used for reserve targeting is defined as the free-float market capitalization,
+\begin{equation}
+MC_t = P_t S_t^{\mathrm{free}}.
+\label{eq:market_cap}
+\end{equation}
+This convention reflects the fact that the reserve is intended to stabilize the tradable portion of the marketplace token. In empirical backtests, the observed market capitalization is used for initialization and turnover normalization; during simulation, $MC_t$ evolves endogenously with price and free-float supply. In historical backtests, observed market capitalization is used as a practical proxy for free-float market capitalization because token-level free-float estimates are not consistently available across the panel. This approximation preserves comparability across assets, but it also means that reserve targets and turnover normalization should be interpreted as empirical proxies rather than exact free-float accounting measures.
+
+The total token supply evolves according to the underlying Burn-and-Mint Equilibrium (BME) or BME-like mechanism. Organic minting and burning are represented as
+\begin{equation}
+S_{t+1}^{\mathrm{tot}}
+=
+S_t^{\mathrm{tot}}
++
+M_t
+-
+B_t,
+\label{eq:total_supply}
+\end{equation}
+where $M_t$ denotes protocol emissions and $B_t$ denotes utility-driven burns. We parameterize these terms as
+\begin{equation}
+M_t = \mu_{\mathrm{em}}(P_t,P_t^{\star})S_t^{\mathrm{tot}},
+\qquad
+B_t = \beta S_t^{\mathrm{tot}}U_t
+\left(
+\frac{P_t}{P_t^{\star}}
+\right)^{\alpha},
+\label{eq:bme_flux}
+\end{equation}
+where $\mu_{\mathrm{em}}(\cdot)$ is the emission rate, $\beta$ is the burn intensity, $U_t$ is marketplace utility demand, $\alpha$ controls the price sensitivity of burns, and $P_t^{\star}$ is the local reference price defined below. This formulation is flexible enough to represent neutral, emission-heavy, burn-heavy, reward-inflation, and demand-collapse regimes.
+
+The key modeling distinction is that dynamic supply locking does not change $S_t^{\mathrm{tot}}$. Locked tokens are not burned, confiscated, or permanently removed from circulation. They are temporarily moved from free float into protocol escrow:
+\begin{equation}
+S_t^{\mathrm{free}}
+=
+S_t^{\mathrm{tot}}
+-
+S_t^{\mathrm{lock}}.
+\label{eq:free_supply}
+\end{equation}
+This distinction is important for both economic interpretation and implementation: the lock is a temporary liquidity-friction tool applied only to eligible supply, not a permanent supply-reduction mechanism.
+
+\subsection{SRF Stabilization Engine}
+\label{subsec:stabilization_engine}
+
+The SRF converts observed market signals into three types of actions: reserve-funded market intervention, temporary supply locking, and reserve-refilling taxation. Figure~\ref{fig:architecture} summarizes the closed-loop architecture.
+
+\subsubsection{Local Reference Price}
+
+The SRF does not target a fixed peg. Instead, it uses a short-window local reference that follows the recent price level:
+\begin{equation}
+P_t^{\star}
+=
+\frac{1}{W}
+\sum_{k=1}^{W} P_{t-k},
+\qquad W=7.
+\label{eq:local_reference}
+\end{equation}
+A weekly reference allows the controller to react to abrupt deviations while still permitting slower marketplace-driven price discovery. This design is appropriate for non-pegged marketplace tokens whose long-run value should remain tied to service demand, liquidity, and platform fundamentals.
+
+Given $P_t^{\star}$, we define the normalized price error and one-day price velocity as
+\begin{equation}
+e_t =
+\frac{P_t^{\star}-P_t}{P_t^{\star}},
+\qquad
+v_t =
+\frac{P_t-P_{t-1}}{P_{t-1}}.
+\label{eq:error_velocity}
+\end{equation}
+A positive $e_t$ indicates that the token is trading below its local reference, while a negative $v_t$ indicates downward momentum.
+
+\subsubsection{Reserve-Funded Feedback Intervention}
+
+The SRF computes a raw stable-asset intervention demand using a derivative-dominated proportional-derivative rule:
+\begin{equation}
+u_t^{\mathrm{raw}}
+=
+R_t
+\left(
+\omega_p e_t
+-
+\omega_d v_t
+\right),
+\label{eq:pd_raw}
+\end{equation}
+where $\omega_p$ and $\omega_d$ are the proportional and derivative gains. The proportional component reacts to deviations from the local reference, while the derivative component reacts to short-run price momentum. The default design uses $\omega_p \ll \omega_d$ so that the SRF behaves as a spike-dampening mechanism rather than a long-run price anchor.
+
+A deadband suppresses intervention when the price deviation is small:
+\begin{equation}
+u_t^{\mathrm{db}}
+=
+u_t^{\mathrm{raw}}
+\cdot
+\mathbf{1}\left(|e_t|\geq \tau\right),
+\label{eq:deadband}
+\end{equation}
+where $\tau$ is the deadband threshold. The executed intervention is further constrained by reserve capacity, token inventory, pool depth, and a daily rate limiter. A positive $u_t^{\mathrm{db}}$ denotes a buy order funded by the stable-asset reserve; a negative value denotes a sell order using the SRF's token inventory.
+
+\subsubsection{Volatility-Triggered Dynamic Supply Locking}
+
+The supply-locking mechanism temporarily reduces the effective free float when short-window realized volatility rises above a slower baseline. Let $\widehat{\sigma}_w(P;t)$ denote the standard deviation of simple daily returns over the last $w$ days. The excess-volatility signal is
+\begin{equation}
+\Delta \widehat{\sigma}_t
+=
+\max
+\left(
+0,\,
+\widehat{\sigma}_{w_s}(P;t)
+-
+\widehat{\sigma}_{w_b}(P;t)
+\right),
+\label{eq:excess_vol}
+\end{equation}
+where $w_s$ and $w_b$ are the short and baseline volatility windows, respectively. The target lock ratio for eligible supply is
+\begin{equation}
+\ell_t
+=
+\min
+\left(
+\ell_{\max},\,
+\gamma \Delta \widehat{\sigma}_t
+\right),
+\label{eq:lock_ratio}
+\end{equation}
+where $\gamma$ is the lock sensitivity and $\ell_{\max}$ is the maximum lock ratio.
+
+Only eligible supply can be locked. Let $\theta_t\in[0,1]$ denote the eligible-supply share, including treasury holdings, opted-in staking positions, or enrolled liquidity-provider positions. The target quantity to be held in escrow is
+\begin{equation}
+S_t^{\mathrm{lock},\star}
+=
+\ell_t \theta_t S_t^{\mathrm{tot}}.
+\label{eq:lock_stock_target}
+\end{equation}
+For the daily simulation, the locked stock is updated toward this target and released when excess volatility subsides:
+\begin{equation}
+S_t^{\mathrm{lock}}
+=
+\begin{cases}
+S_t^{\mathrm{lock},\star}, & \Delta \widehat{\sigma}_t>0,\\[4pt]
+\max\left(0,\,S_{t-1}^{\mathrm{lock}}-\zeta S_t^{\mathrm{tot}}\right), & \Delta \widehat{\sigma}_t=0,
+\end{cases}
+\label{eq:lock_stock}
+\end{equation}
+where $\zeta$ is the daily linear-thaw rate. In the benchmark implementation, the lock is evaluated daily and released deterministically once short-window volatility falls back toward the baseline.
+
+The actual fraction of total supply removed from free float is
+\begin{equation}
+\lambda_t
+=
+\frac{S_t^{\mathrm{lock}}}{S_t^{\mathrm{tot}}}
+\leq
+\theta_t \ell_{\max}.
+\label{eq:free_float_reduction}
+\end{equation}
+The natural market return is then dampened as
+\begin{equation}
+r_{t}^{\mathrm{eff}}
+=
+r_{t}^{\mathrm{mkt}}
+(1-\lambda_t),
+\label{eq:effective_return}
+\end{equation}
+where $r_t^{\mathrm{mkt}}$ is the unregulated market return from either historical data or synthetic simulation. This equation captures the intended function of the lock: it attenuates market force during volatility spikes without requiring the reserve to absorb the entire shock through trading.
+
+\subsubsection{Trade Execution and Market Impact}
+
+Reserve intervention is executed through a constant-product automated market maker (AMM) representation. Let $A_t$ and $B_t$ be the token-side and stable-asset-side pool reserves, respectively, with
+\begin{equation}
+A_tB_t=k_t,
+\qquad
+P_t=\frac{B_t}{A_t}.
+\label{eq:amm_invariant}
+\end{equation}
+The pool is initialized using a liquidity-depth parameter $\phi$:
+\begin{equation}
+B_t=\frac{\phi MC_t \chi_t}{2},
+\qquad
+A_t=\frac{B_t}{P_t},
+\label{eq:pool_depth}
+\end{equation}
+where $\chi_t\in[0,1]$ is an optional liquidity-shock multiplier.
+
+For a buy intervention, the SRF injects stable assets into the pool. The executed buy amount is
+\begin{equation}
+q_t^{+}
+=
+\min
+\left(
+\max(u_t^{\mathrm{db}},0),\,
+R_t,\,
+\psi B_t
+\right),
+\label{eq:buy_amount}
+\end{equation}
+where $\psi$ caps single-step execution relative to pool depth. The post-trade pool reserves are
+\begin{equation}
+B_t' = B_t + q_t^{+},
+\qquad
+A_t' = \frac{k_t}{B_t'},
+\label{eq:buy_pool_update}
+\end{equation}
+and the SRF receives $A_t-A_t'$ native tokens. The reserve and inventory update as
+\begin{equation}
+R_t' = R_t - q_t^{+},
+\qquad
+H_t' = H_t + (A_t-A_t').
+\label{eq:buy_inventory_update}
+\end{equation}
+
+For a sell intervention, the SRF injects native tokens into the pool. The target sell notional is $q_t^{-}=\max(-u_t^{\mathrm{db}},0)$, and the executed token amount is
+\begin{equation}
+x_t^{-}
+=
+\min
+\left(
+\frac{q_t^{-}}{P_t},\,
+H_t,\,
+\frac{\psi B_t}{P_t}
+\right).
+\label{eq:sell_amount}
+\end{equation}
+The post-trade pool reserves are
+\begin{equation}
+A_t' = A_t + x_t^{-},
+\qquad
+B_t' = \frac{k_t}{A_t'},
+\label{eq:sell_pool_update}
+\end{equation}
+and the SRF receives $B_t-B_t'$ stable assets. The reserve and inventory update as
+\begin{equation}
+R_t' = R_t + (B_t-B_t'),
+\qquad
+H_t' = H_t - x_t^{-}.
+\label{eq:sell_inventory_update}
+\end{equation}
+
+The AMM-induced price impact is
+\begin{equation}
+\Delta P_{t}^{\mathrm{amm}}
+=
+\frac{P_t'-P_t}{P_t},
+\qquad
+P_t'=\frac{B_t'}{A_t'}.
+\label{eq:amm_impact}
+\end{equation}
+A rate limiter bounds the daily SRF-induced price impact:
+\begin{equation}
+\Delta P_t^{\mathrm{srf}}
+=
+\operatorname{clip}
+\left(
+\Delta P_t^{\mathrm{amm}},
+-\delta_{\mathrm{rl}},
+\delta_{\mathrm{rl}}
+\right),
+\label{eq:rate_limiter}
+\end{equation}
+where $\delta_{\mathrm{rl}}$ is the maximum allowed intervention impact per day. The rate limiter prevents the controller from becoming a source of excessive volatility.
+
+For robustness checks, we also use a linear impact approximation:
+\begin{equation}
+\Delta P_t^{\mathrm{lin}}
+=
+\operatorname{sign}(u_t^{\mathrm{db}})
+\min
+\left(
+\frac{|u_t^{\mathrm{db}}|}{LD_t}\kappa,\,
+\delta_{\mathrm{rl}}
+\right),
+\label{eq:linear_impact}
+\end{equation}
+where $LD_t=B_t$ is stable-asset pool depth and $\kappa$ is the linear slippage coefficient. The AMM model is the canonical execution model; the linear specification is used only as a sensitivity baseline.
+
+\subsubsection{Dynamic Reserve-Refilling Tax}
+
+The SRF is partly self-financing. When reserve capacity falls below a target level, a dynamic transaction tax replenishes the reserve. The reserve target is
+\begin{equation}
+R_t^{\star}
+=
+\rho MC_t,
+\label{eq:reserve_target}
+\end{equation}
+where $\rho$ is the target reserve-to-market-capitalization ratio. The tax rate is
+\begin{equation}
+\eta_t
+=
+\eta_{\max}
+\max
+\left(
+0,\,
+1-\frac{R_t}{R_t^{\star}}
+\right),
+\label{eq:dynamic_tax}
+\end{equation}
+where $\eta_{\max}$ is the maximum tax rate. If $R_t\geq R_t^{\star}$, the tax is zero. If the reserve is depleted, the tax increases smoothly up to $\eta_{\max}$.
+
+Let $\widetilde{\mathrm{Vol}}_t$ denote daily turnover, defined as USD trading volume normalized by market capitalization. The reserve inflow from taxation is
+\begin{equation}
+\Delta R_t^{\mathrm{tax}}
+=
+\eta_t \widetilde{\mathrm{Vol}}_t MC_t.
+\label{eq:tax_inflow}
+\end{equation}
+This tax is applied before market intervention in each daily step. The design makes the cost of stabilization explicit: users pay additional friction only when reserve capacity is below target.
+
+\subsection{Daily Numerical Scheme}
+\label{subsec:numerical_scheme}
+
+Each daily step proceeds in the following order.
+
+\begin{enumerate}
+    \item \textbf{Update organic BME supply.} Compute emissions $M_t$, burns $B_t$, and update $S_t^{\mathrm{tot}}$ using Eq.~\eqref{eq:total_supply}.
+    \item \textbf{Refill the reserve.} Compute $R_t^{\star}$, $\eta_t$, and $\Delta R_t^{\mathrm{tax}}$, then add the tax inflow to the stable-asset reserve.
+    \item \textbf{Update market signals.} Compute the local reference $P_t^{\star}$, price error $e_t$, price velocity $v_t$, and excess volatility $\Delta\widehat{\sigma}_t$.
+    \item \textbf{Apply supply locking.} Compute the target lock ratio $\ell_t$, eligible locked stock, and free-float reduction $\lambda_t$.
+    \item \textbf{Execute reserve intervention.} Compute the deadband-gated intervention demand, execute it through the AMM subject to inventory, reserve, pool-depth, and rate-limit constraints, and update $R_t$ and $H_t$.
+    \item \textbf{Update the token price.} The next price is
+    \begin{equation}
+    P_{t+1}
+    =
+    \max
+    \left[
+    P_t
+    \left(
+    1+r_t^{\mathrm{eff}}+\Delta P_t^{\mathrm{srf}}
+    \right),
+    \varepsilon
+    \right],
+    \label{eq:price_update}
+    \end{equation}
+    where $\varepsilon>0$ prevents numerical underflow.
+\end{enumerate}
+
+The unregulated market return $r_t^{\mathrm{mkt}}$ is obtained in two ways. In historical backtests, it is computed from observed token prices. In synthetic stress tests, it is generated from a stochastic process with optional engineered crash, volatility-clustering, and liquidity-shock components:
+\begin{equation}
+r_t^{\mathrm{mkt}}
+=
+\mu \Delta t
++
+\sigma\sqrt{\Delta t}\,\xi_t
++
+r_t^{\mathrm{shock}},
+\qquad
+\xi_t\sim\mathcal{N}(0,1).
+\label{eq:synthetic_return}
+\end{equation}
+The same SRF kernel is applied to both historical and synthetic inputs, making the evaluation asset-agnostic.
+
+\subsection{Local Unsaturated Stability Analysis}
+\label{subsec:stability}
+
+We provide a local unsaturated stability analysis to characterize the controller's behavior around the local reference price. This analysis is intentionally limited: it is not a global stability proof for the full nonlinear system with AMM impact, deadband, rate limiting, dynamic taxation, and supply locking. Rather, it gives a conservative benchmark for interpreting the gain choices used in the experiments.
+
+Consider a local neighborhood in which the target price $P^{\star}$ is constant, the lock, tax, deadband, and rate limiter are inactive, reserve capacity and liquidity depth are locally constant, and market impact is approximated linearly. Let
+\begin{equation}
+\widetilde{p}_t
+=
+\frac{P_t-P^{\star}}{P^{\star}}
+\label{eq:price_deviation}
+\end{equation}
+be the normalized price deviation. Under the linear impact approximation, the closed-loop deviation satisfies the second-order recursion
+\begin{equation}
+\widetilde{p}_{t+1}
+=
+\left[
+1-a(\omega_p+\omega_d)
+\right]\widetilde{p}_t
++
+a\omega_d \widetilde{p}_{t-1}
++
+\xi_t,
+\label{eq:linearized_recursion}
+\end{equation}
+where $a>0$ is the effective per-step intervention gain and $\xi_t$ is residual market noise. In the linear-impact model, $a$ is increasing in reserve firepower and decreasing in liquidity depth.
+
+Applying the Jury stability criterion to the deterministic part of Eq.~\eqref{eq:linearized_recursion} gives the following local unsaturated stability conditions:
+\begin{equation}
+a\omega_p>0,
+\qquad
+a\omega_d<1,
+\qquad
+a\omega_p+2a\omega_d<2.
+\label{eq:jury_conditions}
+\end{equation}
+These inequalities show that large derivative gains can destabilize the unsaturated linear loop if they are not constrained by liquidity depth and execution limits. In the implemented SRF, the derivative gain is deliberately chosen to be aggressive because the controller is intended to reject short-run price spikes. However, the actual nonlinear system is not operated in the unconstrained region: intervention is gated by the deadband, bounded by reserve and inventory constraints, executed through AMM depth, and clipped by the daily rate limiter. Consequently, the gain values should be interpreted as operating parameters of a saturated controller, not as parameters of an unconstrained linear controller.
+
+This distinction is important for interpretation. The local analysis provides a conservative diagnostic for gain selection, while numerical robustness checks verify behavior under the full saturated implementation. Therefore, the paper reports both the analytical unsaturated bound and the empirical gain-sensitivity results.
+
+\subsection{Parameterization}
+\label{subsec:parameterization}
+
+Table~\ref{tab:method_parameters} summarizes the main operational parameters. The defaults are fixed before the experiments and are not tuned per token. Sensitivity analyses in Section~\ref{sec:experiments} examine the effect of gain choices, eligible-supply share, impact model, liquidity shocks, and reserve capitalization.
+
+\begin{table*}[htbp]
+\centering
+\caption{Main SRF parameters and their roles in the stabilization mechanism.}
+\label{tab:method_parameters}
+\begin{tabular}{|p{2.8cm}|p{2.4cm}|p{9.0cm}|}
+\hline
+\textbf{Parameter} & \textbf{Default} & \textbf{Role} \\
+\hline
+$W$ & 7 days & Local reference window for computing $P_t^{\star}$. \\
+\hline
+$\omega_p,\omega_d$ & $0.10,\,4.0$ & Proportional and derivative intervention gains; the default is derivative-dominated to dampen short-run momentum. \\
+\hline
+$\tau$ & $0.04$ & Deadband threshold that suppresses intervention around ordinary price fluctuations. \\
+\hline
+$w_s,w_b$ & $5,\,45$ days & Short and baseline realized-volatility windows used to compute excess volatility. \\
+\hline
+$\gamma$ & $20$ & Sensitivity of the target lock ratio to excess realized volatility. \\
+\hline
+$\ell_{\max}$ & $0.55$ & Maximum fraction of eligible supply that can be temporarily locked. \\
+\hline
+$\theta_t$ & scenario-dependent & Eligible-supply share; captures treasury, opted-in staking, and enrolled liquidity-provider positions. \\
+\hline
+$\zeta$ & implementation-dependent & Daily linear-thaw rate for releasing locked supply when excess volatility subsides. \\
+\hline
+$\rho$ & $0.15$ & Target reserve-to-free-float-market-capitalization ratio. \\
+\hline
+$\rho_0$ & $0.10$ & Initial reserve-to-market-capitalization ratio. \\
+\hline
+$\eta_{\max}$ & $0.05$ & Maximum dynamic tax rate used to refill the reserve when $R_t<R_t^{\star}$. \\
+\hline
+$\phi$ & $0.10$ & Liquidity-depth share used to initialize AMM pool depth relative to market capitalization. \\
+\hline
+$\psi$ & $0.20$ & Single-step trade cap relative to stable-asset pool depth. \\
+\hline
+$\delta_{\mathrm{rl}}$ & $0.04$ & Daily rate limiter on SRF-induced price impact. \\
+\hline
+$\kappa$ & $0.5$ & Linear market-impact coefficient used in robustness checks. \\
+\hline
+\end{tabular}
+\end{table*}
+
+
+\section{Experimental Design and Results}
+\label{sec:experiments}
+
+This section evaluates the Stabilization Reserve Fund (SRF) as a stabilization mechanism for token-mediated digital marketplaces. The evaluation has three objectives. First, we test whether the SRF reduces short-horizon drawdowns under controlled crash, volatility-clustering, and liquidity-stress conditions. Second, we examine whether the mechanism shows promising robustness across the tested token panel, BME regimes, and eligible-supply participation levels. Third, we quantify the user-facing cost of stabilization through taxation, reserve utilization, intervention turnover, lock-induced illiquidity, and price-discovery distortion. Section~\ref{sec:exp-design} describes the experimental design. Sections~\ref{sec:exp-ablation}--\ref{sec:exp-cost} report the main results.
+
+\subsection{Experimental Design}
+\label{sec:exp-design}
+
+\subsubsection{Token Panel and Historical Data}
+
+We evaluate the SRF on a panel of ten tokens representing two broad categories of token-mediated marketplaces. The first category includes BME, DePIN, or BME-like service-market tokens associated with decentralized infrastructure, storage, compute, or data-related ecosystems. The second category includes high-volatility DeFi governance or utility tokens whose market behavior provides a demanding stress-test benchmark. The benchmark panel includes RNDR, HNT, FIL, AKT, AR, AAVE, COMP, UNI, CRV, and BAND. 
+
+For each token, we collect daily price \(P_t\), market capitalization \(\mathrm{MC}_t\), and trading volume \(\mathrm{Vol}_t\) from the public CoinGecko v3 \texttt{coins/\{id\}/market\_chart} endpoint over the 365-day window from 1~May~2024 to 30~April~2025. This window covers a recent high-volatility period with clustered token-market shocks. Boundary missing observations are trimmed before computing simple returns. Short interior gaps in price and market capitalization are forward-filled when necessary, while missing volume observations are set to zero only when no trading activity is reported. Daily volume is normalized as turnover,
+\[
+\widetilde{\mathrm{Vol}}_t = \frac{\mathrm{Vol}_t}{\mathrm{MC}_t}.
+\]
+During simulation, the dynamic-tax inflow is computed by multiplying this turnover by the running market capitalization. This ensures that absolute USD volume scales with the simulated state rather than the pre-shock historical capitalization.
+
+The historical evaluation should be interpreted as a recent high-volatility backtest rather than a complete multi-cycle empirical validation. To avoid over-claiming cross-regime generality, we complement the historical token-panel evaluation with synthetic crash, volatility-clustering, liquidity-shock, and BME-regime stress tests. A full multi-window historical validation over crash-heavy, recovery, and recent high-volatility regimes is discussed as an extension in Section~\ref{sec:discussion}.
+
+\begin{table}[!t]
+\centering
+\caption{Empirical token panel. Tokens are grouped by empirical marketplace role. The BME/DePIN/BME-like category indicates token-mediated service-market relevance rather than identical burn-and-mint mechanics across all tokens.}
+\label{tab:token_panel}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.18}
+\begin{tabular}{|p{0.30\columnwidth}|p{0.60\columnwidth}|}
+\hline
+\textbf{Token} & \textbf{Marketplace or tokenomic role} \\
+\hline
+
+\textbf{RNDR}\newline
+\texttt{render-token}\newline
+BME/DePIN-like &
+Decentralized GPU rendering and compute-related service token. \\
+\hline
+
+\textbf{HNT}\newline
+\texttt{helium}\newline
+BME/DePIN-like &
+Decentralized wireless and IoT data-credit ecosystem. \\
+\hline
+
+\textbf{FIL}\newline
+\texttt{filecoin}\newline
+BME/DePIN-like &
+Decentralized storage marketplace with collateralized service provision. \\
+\hline
+
+\textbf{AKT}\newline
+\texttt{akash-network}\newline
+BME/DePIN-like &
+Decentralized compute marketplace token. \\
+\hline
+
+\textbf{AR}\newline
+\texttt{arweave}\newline
+BME/DePIN-like &
+Permanent-storage primitive and decentralized data-service token. \\
+\hline
+
+\textbf{AAVE}\newline
+\texttt{aave}\newline
+Volatile DeFi &
+Lending-protocol governance token. \\
+\hline
+
+\textbf{COMP}\newline
+\texttt{compound-governance-token}\newline
+Volatile DeFi &
+Lending-protocol governance token. \\
+\hline
+
+\textbf{UNI}\newline
+\texttt{uniswap}\newline
+Volatile DeFi &
+AMM governance token. \\
+\hline
+
+\textbf{CRV}\newline
+\texttt{curve-dao-token}\newline
+Volatile DeFi &
+AMM governance and ve-tokenomics token. \\
+\hline
+
+\textbf{BAND}\newline
+\texttt{band-protocol}\newline
+Volatile DeFi &
+Oracle-network utility token. \\
+\hline
+
+\end{tabular}
+\end{table}
+
+\subsubsection{Synthetic Stress Environments}
+
+Historical backtests are complemented with synthetic stress tests. Synthetic environments allow us to isolate the behavior of the SRF under controlled market conditions that may not be present in every historical period. We use four environments:
+
+\begin{enumerate}
+    \item \textbf{Baseline stochastic market:} a geometric Brownian motion discretization calibrated by daily return drift and volatility.
+    \item \textbf{Engineered crash:} a baseline stochastic process augmented with a 10-day flash-crash at \(t\in[150,160]\), with daily mean shock \(-12\%\).
+    \item \textbf{Volatility clustering:} a regime-switching process with alternating 30-day low- and high-volatility windows.
+    \item \textbf{Liquidity shock:} a stress window in which the AMM liquidity-depth multiplier is reduced as \(\chi(t)=1-\delta_{\mathrm{liq}}\).
+\end{enumerate}
+
+The synthetic unregulated market return is
+\[
+r_t^{\mathrm{mkt}}
+=
+\mu\Delta t
++
+\sigma\sqrt{\Delta t}\xi_t
++
+r_t^{\mathrm{shock}},
+\qquad
+\xi_t\sim\mathcal{N}(0,1),
+\]
+where \(r_t^{\mathrm{shock}}\) is zero in the baseline case and non-zero in crash or liquidity-stress scenarios. The same stochastic seeds are used across controller variants.
+
+
+\subsubsection{BME Regime Stress Tests}
+
+To test whether the SRF remains effective under different tokenomic conditions, we evaluate five BME organic-flux regimes. These regimes vary the relationship among protocol emissions, utility-driven burns, and marketplace demand.
+
+\begin{table}[htbp]
+\centering
+\caption{BME organic-flux regimes used in synthetic stress tests. Daily rates are applied to the organic mint--burn supply model in Eq.~\eqref{eq:bme_flux}. Here \(e_t^{+}=\max(e_t,0)\).}
+\label{tab:bme_regimes_exp}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.18}
+\begin{tabular}{|p{0.28\columnwidth}|p{0.62\columnwidth}|}
+\hline
+\textbf{Regime} & \textbf{Operational setting and interpretation} \\
+\hline
+
+Neutral &
+\(\mu_{\mathrm{em}}=1.0\times10^{-3}\), 
+\(\beta=1.0\times10^{-3}\), 
+\(\alpha=0.5\). 
+Minting and burning are approximately balanced; supply remains roughly stable. \\
+\hline
+
+Emission-heavy &
+\(\mu_{\mathrm{em}}=3.0\times10^{-3}\), 
+\(\beta=1.0\times10^{-3}\), 
+\(\alpha=0.0\). 
+Protocol emissions exceed utility-driven burns, creating a dilutive reward regime. \\
+\hline
+
+Burn-heavy &
+\(\mu_{\mathrm{em}}=1.0\times10^{-3}\), 
+\(\beta=3.0\times10^{-3}\), 
+\(\alpha=1.0\). 
+Utility-driven burns dominate emissions, representing strong service demand or constrained supply growth. \\
+\hline
+
+Reward-driven inflation &
+\(\mu_{\mathrm{em}}=1.0\times10^{-3}(1+5e_t^{+})\), 
+\(\beta=1.0\times10^{-3}\), 
+\(\alpha=0.0\). 
+Emissions increase when the token trades below its local reference, representing a potentially destabilizing reward rule. \\
+\hline
+
+Demand collapse &
+\(\mu_{\mathrm{em}}=1.0\times10^{-3}\), 
+\(\beta=1.0\times10^{-3}\), 
+\(\alpha=1.0\), with \(U_t\) decaying from \(0.4T\) onward. 
+Utility demand falls during the simulation, representing a marketplace consumption shock. \\
+\hline
+
+\end{tabular}
+\end{table}
+
+\subsubsection{Controller Variants}
+
+We benchmark seven controller variants:
+
+\begin{enumerate}
+    \item \textbf{No intervention:} the token follows the unregulated market path.
+    \item \textbf{Passive threshold:} the reserve intervenes only when price deviation exceeds a fixed threshold.
+    \item \textbf{P-only:} the reserve uses only the proportional price-deviation component.
+    \item \textbf{Feedback trading only:} the reserve uses the feedback trading rule, but dynamic supply locking and dynamic taxation are disabled.
+    \item \textbf{Lock-only:} dynamic supply locking is enabled, but reserve-funded trading and taxation are disabled.
+    \item \textbf{SRF without dynamic tax:} reserve-funded feedback trading and dynamic supply locking are enabled, but reserve replenishment through taxation is disabled.
+    \item \textbf{Full SRF:} feedback trading, dynamic supply locking, intervention safeguards, and dynamic taxation are all enabled.
+\end{enumerate}
+
+This ablation design separates the effects of direct reserve intervention, free-float dampening, and reserve replenishment.
+
+\subsubsection{Eligible-Supply Share and Partial Opt-In}
+
+A key implementation issue is that only eligible supply can be temporarily locked. Retail free-float holders cannot be involuntarily escrowed. We therefore treat the eligible-supply share \(\theta\) as a core experimental dimension rather than as a secondary robustness parameter. The parameter \(\theta\) captures the fraction of total supply that is eligible for protocol escrow, including treasury holdings, opted-in staking positions, and enrolled liquidity-provider positions. We evaluate
+\[
+\theta \in \{0.25,\,0.50,\,0.75,\,1.00\}.
+\]
+The case \(\theta=1.00\) is interpreted as an upper-bound intervention scenario. The case \(\theta=0.50\) is a more practical benchmark because it represents a setting in which a meaningful but incomplete share of the supply participates in the stabilization program.
+
+\subsubsection{Risk and Cost Metrics}
+
+Because the SRF is designed as a short-horizon circuit breaker, the headline risk metrics are rolling-window and tail-loss measures. We report the mean 14-day rolling annualized volatility \(\sigma_{\mathrm{ann}}^{(14)}\), mean 14-day rolling peak-to-trough drawdown \(\mathrm{rDD}_{14}\), worst one-day drop \(\mathrm{Worst}_1\), global maximum drawdown \(\mathrm{MaxDD}\), and \(\mathrm{ES}_5\). For each risk metric \(m\), baseline-relative improvement is computed as
+\[
+\Delta_m
+=
+\frac{m^{\mathrm{base}}-m^{\mathrm{srf}}}{m^{\mathrm{base}}}
+\times 100\%.
+\]
+Long-run drift distortion is measured as
+\[
+D_T =
+\left|
+\log
+\left(
+\frac{P_T^{\mathrm{srf}}}{P_T^{\mathrm{base}}}
+\right)
+\right|.
+\]
+
+To quantify the user-facing cost of stabilization, we report five economic metrics. Cumulative tax burden is
+\[
+\mathrm{CTB}
+=
+\frac{\sum_t \eta_t \mathrm{Vol}_t}
+{\sum_t \mathrm{Vol}_t}
+\times 100.
+\]
+Reserve utilization is
+\[
+\mathrm{RU}
+=
+\frac{1}{T}
+\sum_t
+\mathbf{1}
+\left[
+R_t<R_t^{\star}
+\right].
+\]
+Total intervention turnover is
+\[
+\mathrm{TO}
+=
+\sum_t
+|u_t^{\mathrm{act}}|.
+\]
+Time in locked state is
+\[
+T_\ell
+=
+\sum_t
+\mathbf{1}
+\left[
+S_t^{\mathrm{lock}}>0
+\right].
+\]
+Price-discovery distortion is
+\[
+D_{\mathrm{pd}}
+=
+\frac{1}{T}
+\sum_t
+\frac{
+|P_t^{\mathrm{srf}}-P_t^{\mathrm{base}}|
+}{
+P_t^{\mathrm{base}}
+}.
+\]
+
+We also compute two cost-benefit indicators for governance interpretation:
+\[
+CB_{\mathrm{tax}}
+=
+\frac{
+\Delta_{\mathrm{rDD}_{14}}
+}{
+\mathrm{CTB}+\epsilon
+},
+\qquad
+CB_{\mathrm{lock}}
+=
+\frac{
+\Delta_{\mathrm{rDD}_{14}}
+}{
+T_\ell/100+\epsilon
+},
+\]
+where \(\epsilon\) is a small constant used only to avoid division by zero.
+
+\subsubsection{Reproducibility}
+
+The headline ablation uses 30 Monte Carlo seeds. The BME regime sweep uses 20 seeds. Each token-panel cell uses 10 seeds. The gain-sensitivity grid uses 12 seeds per cell, and the liquidity-shock failure-boundary grid uses 8 seeds per cell. Seeds are deterministic and paired across baseline and regulated trajectories. Unless otherwise stated, all experiments use the default parameters in Table~\ref{tab:method_parameters}. Parameters are fixed before experiments and are not tuned per token.
+
+\subsection{Main Stabilization Performance and Controller Ablation}
+\label{sec:exp-ablation}
+
+Table~\ref{tab:abl_results} reports the seven-controller ablation on the engineered-crash, neutral-BME scenario. The result is best interpreted as a Pareto frontier among three objectives: short-window dampening, drawdown protection, and reserve solvency. The Full SRF achieves the best rolling 14-day drawdown, the best worst one-day drop, and the best global maximum drawdown. Relative to no intervention, \(\mathrm{rDD}_{14}\) falls from \(14.06\%\) to \(11.58\%\), \(\mathrm{Worst}_1\) falls from \(19.36\%\) to \(15.76\%\), and \(\mathrm{MaxDD}\) falls from \(82.57\%\) to \(63.96\%\). These correspond to reductions of \(17.6\%\), \(18.6\%\), and \(22.5\%\), respectively.
+
+The ablation also shows what the SRF is not designed to do. Lock-only produces the strongest rolling-volatility compression, reducing \(\sigma_{\mathrm{ann}}^{(14)}\) from \(77.73\%\) to \(69.71\%\), but it does not actively counteract large directional crashes and cannot replenish reserves. Feedback trading without locking is costly and nearly exhausts reserve capacity. The Full SRF therefore improves the drawdown--solvency trade-off by combining reserve intervention, supply-side dampening, and dynamic reserve replenishment.
+
+\begin{table*}[t]
+\centering
+\caption{Controller ablation on the engineered-crash, neutral-BME scenario. Entries are mean \(\pm\) standard deviation over \(N=30\) Monte Carlo seeds. Headline metrics are rolling-14 quantities; \(1-R_T/R_0\) is reserve depletion, with negative values indicating over-refill. Best entry per metric is bolded.}
+\label{tab:abl_results}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Controller} & \(\sigma_{\mathrm{ann}}^{(14)}\) & \(\mathrm{rDD}_{14}\) & \(\mathrm{Worst}_1\) & \(\mathrm{MaxDD}\) & Peak \(\ell\) & \(1-R_T/R_0\) \\
+\hline
+No intervention & \(77.73\!\pm\!3.73\%\) & \(14.06\!\pm\!0.94\%\) & \(19.36\!\pm\!2.63\%\) & \(82.57\!\pm\!4.49\%\) & -- & \(0.00\%\) \\
+\hline
+Passive threshold & \(78.11\!\pm\!3.86\%\) & \(13.77\!\pm\!0.89\%\) & \(18.31\!\pm\!2.50\%\) & \(78.68\!\pm\!4.55\%\) & -- & \(9.94\!\pm\!10.13\%\) \\
+\hline
+P-only & \(78.25\!\pm\!3.71\%\) & \(13.48\!\pm\!0.80\%\) & \(18.09\!\pm\!2.35\%\) & \(76.98\!\pm\!4.44\%\) & -- & \(10.00\!\pm\!13.88\%\) \\
+\hline
+Feedback trading only & \(81.00\!\pm\!4.17\%\) & \(13.63\!\pm\!0.99\%\) & \(18.03\!\pm\!2.61\%\) & \(77.95\!\pm\!5.80\%\) & -- & \(98.86\!\pm\!2.43\%\) \\
+\hline
+Lock-only & \(\mathbf{69.71\!\pm\!3.18\%}\) & \(12.60\!\pm\!0.99\%\) & \(17.98\!\pm\!3.22\%\) & \(77.11\!\pm\!6.40\%\) & \(55\%\) & \(0.00\%\) \\
+\hline
+SRF without tax & \(72.36\!\pm\!3.66\%\) & \(11.97\!\pm\!1.05\%\) & \(16.33\!\pm\!2.96\%\) & \(68.97\!\pm\!9.60\%\) & \(55\%\) & \(92.96\!\pm\!11.17\%\) \\
+\hline
+\textbf{Full SRF} & \(77.28\!\pm\!3.58\%\) & \(\mathbf{11.58\!\pm\!0.73\%}\) & \(\mathbf{15.76\!\pm\!2.45\%}\) & \(\mathbf{63.96\!\pm\!8.08\%}\) & \(55\%\) & \(16.15\!\pm\!54.67\%\) \\
+\hline
+\end{tabular}
+\end{table*}
+
+The improvement is statistically clear. A paired bootstrap with \(B=2000\) resamples on the seed-by-seed differences gives
+\[
+\mathrm{rDD}_{14}^{\mathrm{srf}}
+-
+\mathrm{rDD}_{14}^{\mathrm{base}}
+=
+-2.48\%,
+\]
+with 95\% confidence interval \([-2.65\%,-2.32\%]\), and
+\[
+\mathrm{Worst}_1^{\mathrm{srf}}
+-
+\mathrm{Worst}_1^{\mathrm{base}}
+=
+-3.60\%,
+\]
+with 95\% confidence interval \([-4.38\%,-2.84\%]\). Both intervals exclude zero.
+
+\subsection{Panel and Regime Robustness}
+\label{sec:exp-generalization}
+
+We replay the SRF kernel on each panel token under ten independent volatility-clustering realizations, paired with the same realization under the no-intervention baseline. A token is classified as well-fit if two conditions are satisfied: \(\Delta_{\mathrm{rDD}_{14}}>15\%\) and terminal drift distortion \(D_T<1.0\), corresponding to a terminal SRF/baseline price ratio inside \([0.37,2.71]\). Eight of the ten tokens---HNT, FIL, AR, AAVE, COMP, UNI, CRV, and BAND---satisfy both conditions. For these well-fit tokens, the mean rolling 14-day drawdown reduction is approximately \(26\%\), rolling-volatility reduction is approximately \(12\)--\(14\%\), and worst-day-loss reduction is approximately \(7\)--\(8\%\).
+
+RNDR and AKT are transparent boundary cases. Both have intrinsic annualized volatility above \(130\%\) and fail the drift criterion. In these cells, the supply-locking mechanism saturates frequently enough that it dampens not only temporary shocks but also sustained directional movement. Short-window risk reduction remains strong, but long-run drift distortion becomes material. We therefore report these tokens as limitation cases rather than retuning the controller per token.
+
+The BME regime sweep shows stable behavior across tokenomic conditions. Under neutral, emission-heavy, burn-heavy, reward-driven inflation, and demand-collapse regimes, the engineered-crash reductions remain close to \(\Delta_{\mathrm{rDD}_{14}}\approx17.6\%\) and \(\Delta_{\mathrm{Worst}_1}\approx18.6\%\). This suggests that, within the tested synthetic stress settings, the protective effect is not specific to a single neutral BME condition. However, these results should be interpreted as controlled stress-test evidence rather than as full multi-cycle historical validation.
+
+\begin{table*}[t]
+\centering
+\caption{Generalization across token panels and BME regimes. Top: Full-SRF metrics for the eight well-fit panel tokens, grouped by marketplace role. Middle: high-volatility limitation cases. Bottom: BME organic-flux regimes on the engineered-crash kernel. Drift is \(D_T=|\log(P_T^{\mathrm{srf}}/P_T^{\mathrm{base}})|\).}
+\label{tab:group_results}
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\hline
+\textbf{Group / regime} & \(\sigma_{\mathrm{ann}}^{(14)}\) & \(\mathrm{rDD}_{14}\) & \(\mathrm{Worst}_1\) & \(\Delta_{\sigma^{(14)}}\) & \(\Delta_{\mathrm{rDD}_{14}}\) & \(\Delta_{\mathrm{Worst}_1}\) & Drift \\
+\hline
+\multicolumn{8}{|l|}{\textbf{Well-fit tokens}} \\
+\hline
+BME / DePIN / BME-like: HNT, FIL, AR & \(103.71\%\) & \(14.67\%\) & \(22.40\%\) & \(13.78\%\) & \(26.20\%\) & \(7.78\%\) & \(0.892\) \\
+\hline
+Volatile DeFi: AAVE, COMP, UNI, CRV, BAND & \(93.84\%\) & \(13.26\%\) & \(19.93\%\) & \(11.80\%\) & \(25.50\%\) & \(7.26\%\) & \(0.778\) \\
+\hline
+\multicolumn{8}{|l|}{\textbf{Limitation: high-volatility tokens}} \\
+\hline
+RNDR & -- & -- & -- & \(15.86\%\) & \(26.84\%\) & \(11.63\%\) & \(1.052\) \\
+\hline
+AKT & -- & -- & -- & \(17.92\%\) & \(26.71\%\) & \(10.79\%\) & \(1.164\) \\
+\hline
+\multicolumn{8}{|l|}{\textbf{BME organic-flux regimes, engineered-crash kernel}} \\
+\hline
+Neutral & \(77.28\%\) & \(11.58\%\) & \(15.76\%\) & \(0.58\%\) & \(17.61\%\) & \(18.59\%\) & -- \\
+\hline
+Emission-heavy & \(77.28\%\) & \(11.55\%\) & \(15.78\%\) & \(0.58\%\) & \(17.83\%\) & \(18.49\%\) & -- \\
+\hline
+Burn-heavy & \(77.31\%\) & \(11.62\%\) & \(15.74\%\) & \(0.54\%\) & \(17.36\%\) & \(18.71\%\) & -- \\
+\hline
+Reward-driven inflation & \(77.30\%\) & \(11.59\%\) & \(15.76\%\) & \(0.55\%\) & \(17.57\%\) & \(18.60\%\) & -- \\
+\hline
+Demand collapse & \(77.29\%\) & \(11.60\%\) & \(15.76\%\) & \(0.57\%\) & \(17.50\%\) & \(18.59\%\) & -- \\
+\hline
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{results/figs/fig4_token_panel.pdf}
+\caption{Token-panel trajectories. For each representative token, the upper panel shows normalized price \(P_t/P_0\), and the lower panel shows 14-day rolling annualized volatility. Well-fit cases show the SRF tracking broad market drift while reducing short-window instability. Limitation cases show where frequent lock saturation over-resists sustained directional moves.}
+\label{fig:token-panel}
+\end{figure*}
+
+\subsection{Partial Opt-In and Eligible-Supply Trade-off}
+\label{sec:exp-theta}
+
+Table~\ref{tab:theta_sweep} reports the eligible-supply sweep. This experiment is central to deployment feasibility because the supply-locking mechanism can apply only to treasury holdings, opted-in staking positions, and enrolled liquidity-provider positions. Both risk reduction and drift distortion vary with \(\theta\). At \(\theta=0.25\), the SRF still reduces rolling 14-day drawdown by \(9.5\%\), while keeping drift distortion below \(0.30\). At \(\theta=0.50\), which we treat as a practical benchmark, rolling drawdown falls by \(11.8\%\). At \(\theta=1.00\), the upper-bound case, the reduction reaches \(17.6\%\), with slightly higher drift distortion.
+
+This result has two implications. First, the SRF remains useful under partial opt-in; it does not require all circulating supply to participate. Second, the governance choice of \(\theta\) creates a direct trade-off between stabilization strength and liquidity restriction. Protocols can therefore tune opt-in incentives to target a desired stabilization intensity.
+
+\begin{table}[t]
+\centering
+\caption{Eligible-supply sensitivity. Engineered-crash, neutral-BME, \(N=30\) seeds per cell. Drift is \(D_T=|\log(P_T^{\mathrm{srf}}/P_T^{\mathrm{base}})|\); \(\Delta_{\mathrm{rDD}_{14}}\) is the paired drawdown reduction.}
+\label{tab:theta_sweep}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\(\theta\) & \(\mathrm{rDD}_{14}\) & \(\mathrm{Worst}_1\) & Drift & \(\Delta_{\mathrm{rDD}_{14}}\) \\
+\hline
+\(0.25\) & \(12.72\!\pm\!0.70\%\) & \(16.68\!\pm\!2.47\%\) & \(0.299\) & \(9.5\%\) \\
+\hline
+\(0.50\) & \(12.40\!\pm\!0.72\%\) & \(16.29\!\pm\!2.45\%\) & \(0.282\) & \(11.8\%\) \\
+\hline
+\(0.75\) & \(11.95\!\pm\!0.74\%\) & \(16.08\!\pm\!2.41\%\) & \(0.296\) & \(15.0\%\) \\
+\hline
+\(1.00\) & \(11.58\!\pm\!0.73\%\) & \(15.76\!\pm\!2.45\%\) & \(0.310\) & \(17.6\%\) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Robustness to Impact Model, Gains, and Liquidity Shocks}
+\label{sec:exp-robust}
+
+We conduct three robustness checks. First, we compare the linear market-impact approximation with the constant-product AMM execution model. Switching from the linear model in Eq.~\eqref{eq:linear_impact} to the AMM impact in Eq.~\eqref{eq:amm_impact} changes \(\mathrm{rDD}_{14}\) by less than \(0.1\) percentage point, from \(11.58\%\) to \(11.55\%\). Under a \(70\%\) liquidity-shock window during days 148--168, both models give \(\mathrm{rDD}_{14}\approx11.5\%\). The AMM imposes higher per-trade slippage, but the controller compensates by reducing trade aggressiveness at high intervention demand.
+
+Second, we sweep \((\omega_p,\omega_d)\) over a \(6\times6\) grid on the volatility-clustering scenario. The mean \(\mathrm{rDD}_{14}\) varies only between \(10.94\%\) and \(11.24\%\). This narrow range indicates that the SRF does not depend on finely tuned controller gains.
+
+Third, we evaluate the failure boundary under liquidity stress by varying the initial reserve fraction \(\rho_0\in[5\%,20\%]\) and liquidity-shock severity \(\delta_{\mathrm{liq}}\in[0\%,90\%]\). Across the grid, \(\mathrm{rDD}_{14}\) remains between \(11.12\%\) and \(11.16\%\). Two effects explain this flatness: excess-volatility-triggered locking tightens when slippage amplifies daily moves, and the dynamic tax in Eq.~\eqref{eq:dynamic_tax} accelerates reserve refill when the protocol is under stress. Within the tested grid, the mechanism is therefore not sensitive to the exact bootstrap reserve fraction as long as \(\rho_0\geq5\%\).
+
+\begin{figure}
+\centering
+\includegraphics[width=0.95\linewidth]{results/figs/fig7_sensitivity.pdf}
+\caption{Gain-sensitivity heatmap. The figure reports mean \(\mathrm{rDD}_{14}\) over the \((\omega_p,\omega_d)\) grid under the Full SRF on the volatility-clustering scenario. The reference operating point is \((0.10,4.0)\).}
+\label{fig:sensitivity}
+\end{figure}
+
+\begin{figure}
+   \centering
+\includegraphics[width=0.95\linewidth]{results/figs/fig8_failure_boundary.pdf}
+\caption{Failure-boundary heatmap. The figure reports mean \(\mathrm{rDD}_{14}\) under the Full SRF as a function of liquidity-shock severity \(\delta_{\mathrm{liq}}\) and initial reserve fraction \(\rho_0\).}
+\label{fig:failure}
+\end{figure}
+
+\subsection{Economic Cost and Reserve Solvency}
+\label{sec:exp-cost}
+
+Stabilization imposes user-facing costs. Table~\ref{tab:economic_cost} reports cumulative tax burden, reserve utilization, intervention turnover, time in locked state, and price-discovery distortion across controller variants. The Full SRF absorbs \(1.44\%\pm0.38\%\) of total traded volume through the dynamic tax. The reserve is below target on \(83\%\) of days on average. Total intervention turnover reaches \(7.10\pm1.91\) million USD because the dynamic tax replenishes the reserve and sustains feedback intervention. The lock restricts eligible liquidity for \(197.80\pm9.59\) days, approximately \(54\%\) of the 365-day horizon. Price-discovery distortion is \(0.31\pm0.16\).
+
+These values show that stabilization is not free. In the benchmark crash scenario, the Full SRF obtains a \(17.6\%\) rolling-drawdown reduction at a tax burden of \(1.44\%\) of traded volume. This gives
+\[
+CB_{\mathrm{tax}}
+\approx
+\frac{17.6}{1.44}
+=
+12.2.
+\]
+It also obtains the same drawdown reduction with \(197.80\) lock-days, giving
+\[
+CB_{\mathrm{lock}}
+\approx
+\frac{17.6}{197.80/100}
+=
+8.9.
+\]
+These cost-benefit ratios are not universal constants; they are governance diagnostics for comparing parameter choices and deployment settings.
+
+\begin{table*}[htbp]
+\centering
+\caption{Economic cost metrics across controller variants on the engineered-crash, neutral-BME scenario. Entries are mean \(\pm\) standard deviation over \(N=30\) seeds. CTB: cumulative tax burden as percentage of traded volume; RU: reserve utilization; TO: total intervention turnover in million USD; \(T_\ell\): days in locked state; \(D_{\mathrm{pd}}\): price-discovery distortion.}
+\label{tab:economic_cost}
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Controller} & CTB (\%) & RU & TO (M USD) & \(T_\ell\) (days) & \(D_{\mathrm{pd}}\) \\
+\hline
+No intervention & -- & \(0.57\!\pm\!0.23\) & -- & -- & -- \\
+\hline
+Passive threshold & -- & \(0.67\!\pm\!0.25\) & \(0.28\!\pm\!0.06\) & -- & \(0.11\!\pm\!0.06\) \\
+\hline
+P-only & -- & \(0.69\!\pm\!0.24\) & \(0.62\!\pm\!0.11\) & -- & \(0.14\!\pm\!0.07\) \\
+\hline
+Feedback trading only & -- & \(0.97\!\pm\!0.05\) & \(4.24\!\pm\!1.91\) & -- & \(0.18\!\pm\!0.08\) \\
+\hline
+Lock-only & -- & \(0.64\!\pm\!0.24\) & -- & \(176.27\!\pm\!7.67\) & \(0.15\!\pm\!0.08\) \\
+\hline
+SRF without tax & -- & \(0.95\!\pm\!0.07\) & \(3.59\!\pm\!1.66\) & \(184.50\!\pm\!9.38\) & \(0.26\!\pm\!0.12\) \\
+\hline
+Full SRF & \(1.44\!\pm\!0.38\) & \(0.83\!\pm\!0.12\) & \(7.10\!\pm\!1.91\) & \(197.80\!\pm\!9.59\) & \(0.31\!\pm\!0.16\) \\
+\hline
+\end{tabular}
+\end{table*}
+
+The mean reserve depletion of the Full SRF is \(16.15\%\pm54.67\%\), but the large standard deviation reflects a bimodal distribution rather than reserve failure. Table~\ref{tab:reserve_solvency} reports the distributional breakdown. All 30 runs maintain a strictly positive reserve at the horizon, and no run reaches zero reserve at any step. The 5th-percentile terminal reserve is \(20.78\%\) of \(R_0\), and the median terminal reserve is \(70.37\%\) of \(R_0\). The dynamic tax therefore prevents outright reserve depletion in every simulated scenario.
+
+\begin{table}[htbp]
+\centering
+\caption{Reserve solvency breakdown for the Full SRF on the engineered-crash, neutral-BME scenario. Depletion is \(1-R_T/R_0\); negative values indicate over-refill by the dynamic tax.}
+\label{tab:reserve_solvency}
+\begin{tabular}{|l|r|}
+\hline
+\textbf{Statistic} & \textbf{Value} \\
+\hline
+Runs with \(R_T>0\) at horizon & \(30/30\) \((100\%)\) \\
+\hline
+Runs where \(R_t=0\) at any step & \(0/30\) \((0\%)\) \\
+\hline
+Terminal reserve, 5th percentile \((R_T/R_0)\) & \(20.78\%\) \\
+\hline
+Terminal reserve, median \((R_T/R_0)\) & \(70.37\%\) \\
+\hline
+Terminal reserve, mean \((R_T/R_0)\) & \(83.85\%\) \\
+\hline
+Depletion min, best run & \(-158.11\%\) \\
+\hline
+Depletion p25 & \(-16.27\%\) \\
+\hline
+Depletion median & \(+29.63\%\) \\
+\hline
+Depletion p75 & \(+61.71\%\) \\
+\hline
+Depletion p95 & \(+79.22\%\) \\
+\hline
+Depletion max, worst run & \(+84.91\%\) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Summary of Empirical Findings}
+\label{sec:exp-summary}
+
+The empirical and simulation results support three conclusions within the tested settings. First, the Full SRF is most effective as a drawdown-protection mechanism rather than as a pure volatility-minimization tool. It achieves the best rolling drawdown, worst-day loss, and global maximum drawdown among the evaluated controllers, while the Lock-only variant provides stronger rolling-volatility compression at zero reserve cost.
+
+Second, the mechanism shows promising robustness across the tested panel and stress settings. Eight of ten panel tokens satisfy the well-fit criteria, and the BME organic-flux stress tests produce stable drawdown-reduction patterns across neutral, emission-heavy, burn-heavy, reward-driven inflation, and demand-collapse regimes. These results suggest that the SRF is not tied to a single synthetic tokenomic condition, although broader multi-window historical validation is still required before stronger generalization claims can be made.
+
+Third, the mechanism remains useful under partial opt-in. At \(\theta=0.50\), the SRF still reduces rolling drawdown by \(11.8\%\), while \(\theta=1.00\) should be interpreted only as an upper-bound intervention case. The results therefore support the view that SRF-based stabilization can operate with incomplete eligible-supply participation, but its effectiveness depends on the depth of opt-in supply.
+
+The results also show that stabilization has measurable costs. In the benchmark stress scenario, the Full SRF imposes a tax burden of \(1.44\%\) of traded volume, locks eligible supply for approximately \(54\%\) of the one-year horizon, and produces non-trivial price-discovery distortion. These quantities motivate the governance discussion in Section~\ref{sec:discussion}, where we interpret the SRF as a market-design instrument with explicit trade-offs among market protection, liquidity access, reserve solvency, taxation, and price discovery.
+
+\section{Discussion}
+\label{sec:discussion}
+
+The empirical results show that the SRF can reduce short-horizon drawdowns in token-mediated marketplaces, but they also show that stabilization is not a free technical improvement. It reallocates risk and cost across marketplace participants through reserve intervention, temporary supply locking, and dynamic taxation. This section interprets the results from a marketplace-design and governance perspective.
+
+\subsection{SRF as a Marketplace-Stabilization Layer}
+\label{subsec:discussion_marketplace_layer}
+
+The SRF should be understood as a marketplace-stabilization layer rather than as an algorithmic stablecoin or a hard-peg mechanism. Its purpose is not to maintain a fixed token price. Instead, it acts as a short-horizon circuit breaker that dampens abrupt market stress while allowing long-run price discovery to remain linked to marketplace fundamentals.
+
+This distinction is important for token-mediated electronic marketplaces. In such markets, token-price instability can affect service affordability, supplier compensation, liquidity provision, treasury value, and governance confidence. A sharp price decline may therefore disrupt not only traders, but also users and suppliers who rely on the token as part of the marketplace infrastructure. The SRF is designed to reduce these destabilizing episodes without replacing the underlying service-demand and token-supply dynamics.
+
+The ablation results support this interpretation. The Full SRF provides the strongest drawdown protection, reducing rolling 14-day drawdown, worst one-day loss, and global maximum drawdown more effectively than the other controller variants. However, it does not minimize rolling-window volatility. The Lock-only variant achieves stronger volatility compression, but it does not provide the same directional protection or reserve sustainability. The SRF is therefore best viewed as a drawdown-protection and solvency-oriented mechanism, not as a volatility-minimization rule.
+
+\subsection{Governance Levers and Protocol Design}
+\label{subsec:discussion_governance_levers}
+
+The SRF introduces several parameters that should be treated as governance levers rather than merely technical hyperparameters. The reserve target \(\rho\) determines how much stable-asset firepower the protocol wants to maintain relative to market capitalization. The maximum tax rate \(\eta_{\max}\) determines the upper bound of transaction friction that users may bear during reserve depletion. The maximum lock ratio \(\ell_{\max}\) determines how aggressively the protocol can restrict eligible free float during volatility spikes. The eligible-supply share \(\theta\) determines how much supply can participate in the stabilization program. The intervention gains \((\omega_p,\omega_d)\), deadband \(\tau\), and rate limit \(\delta_{\mathrm{rl}}\) determine how responsive the reserve is to short-window market stress.
+
+These parameters encode policy choices. A marketplace that prioritizes service continuity and crash protection may choose a larger reserve target, stronger opt-in incentives, and a higher lock cap. A marketplace that prioritizes open liquidity and minimal intervention may choose a smaller reserve target, lower tax ceiling, and more conservative locking rules. The appropriate configuration therefore depends on the marketplace's role of the token: whether it is primarily a payment token, a supplier-reward token, a governance asset, a liquidity asset, or a combination of these roles. For marketplace operators, the practical value of the SRF is not that it eliminates volatility, but that it provides a parameterized governance toolkit for choosing how much market protection to purchase through taxation, reserve capitalization, and temporary liquidity restriction. This makes the SRF closer to a marketplace policy instrument than to a purely technical controller.
+
+\begin{table}[htbp]
+\centering
+\caption{Governance interpretation of SRF parameters and cost metrics.}
+\label{tab:governance_dashboard}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.24\columnwidth}|p{0.31\columnwidth}|p{0.33\columnwidth}|}
+\hline
+\textbf{Variable} & \textbf{Governance meaning} & \textbf{Primary affected participants} \\
+\hline
+
+\(\rho\) &
+Reserve capitalization policy; determines target stabilization firepower. &
+Protocol treasury, long-term users, suppliers. \\
+\hline
+
+\(\eta_{\max}\) &
+Maximum tax ceiling; bounds transaction friction during reserve depletion. &
+Active users, traders, service buyers. \\
+\hline
+
+\(\ell_{\max}\) &
+Maximum lock intensity; controls how aggressively eligible free float can be restricted. &
+Stakers, LPs, treasury-controlled supply. \\
+\hline
+
+\(\theta\) &
+Eligible-supply participation; reflects opt-in depth of the stabilization program. &
+Treasury, stakers, LPs, governance participants. \\
+\hline
+
+\((\omega_p,\omega_d)\) &
+Intervention responsiveness; determines how strongly the reserve reacts to deviation and momentum. &
+All market participants through price impact. \\
+\hline
+
+\(\mathrm{CTB}\) &
+Realized transaction-tax burden. &
+Active users and traders. \\
+\hline
+
+\(T_\ell\) &
+Realized lock exposure; measures the duration of liquidity restriction. &
+Opted-in stakers and liquidity providers. \\
+\hline
+
+\(D_{\mathrm{pd}}\) &
+Price-discovery distortion; measures deviation from the unregulated market path. &
+Users, suppliers, traders, governance participants. \\
+\hline
+
+\end{tabular}
+\end{table}
+
+The results also suggest that parameter choices should not be evaluated only by risk reduction. They should be evaluated jointly with user-facing costs. The cost metrics in Section~\ref{sec:exp-cost} provide a practical governance dashboard: cumulative tax burden measures transaction friction, reserve utilization measures stress on intervention capacity, intervention turnover measures active market involvement, lock-days measure liquidity restriction, and price-discovery distortion measures deviation from the unregulated market path.
+
+\subsection{Partial Opt-In and Incentive Compatibility}
+\label{subsec:discussion_opt_in}
+
+The eligible-supply analysis in Section~\ref{sec:exp-theta} is central to deployment feasibility. The supply-locking mechanism cannot be applied to arbitrary retail free float without violating user autonomy and damaging marketplace trust. In practice, eligible supply should come from treasury holdings, opted-in staking positions, or enrolled liquidity-provider positions. This makes \(\theta\) an economic and governance variable.
+
+The \(\theta\)-sweep shows that the SRF remains useful even under partial opt-in. At \(\theta=0.25\), the mechanism still reduces rolling drawdown by \(9.5\%\). At \(\theta=0.50\), which is a more realistic benchmark than full opt-in, the drawdown reduction reaches \(11.8\%\). At \(\theta=1.00\), the upper-bound case, the reduction reaches \(17.6\%\). These results imply that the mechanism does not require complete control over circulating supply, but stronger opt-in participation increases stabilization capacity.
+
+This creates an incentive-design problem. Participants who allow their tokens or LP positions to become eligible for temporary locking provide stabilization capacity to the marketplace. They should therefore receive compensation, such as staking rewards, fee rebates, governance weight, or priority access to protocol incentives. Without such compensation, rational participants may avoid opt-in during calm periods and expect protection during stress periods, creating a free-rider problem. A practical SRF deployment should therefore specify both the lock conditions and the reward mechanism for providing eligible stabilization capacity.
+
+\subsection{User-Facing Costs and Fairness}
+\label{subsec:discussion_fairness}
+
+The economic cost analysis shows that the benefits of stabilization are accompanied by measurable user-facing costs. In the benchmark crash scenario, the Full SRF absorbs \(1.44\%\) of traded volume through the dynamic tax, locks eligible supply for approximately \(54\%\) of the one-year horizon, and produces a price-discovery distortion of \(0.31\). These costs are not implementation details; they determine whether the mechanism is acceptable to marketplace participants.
+
+The costs are also unevenly distributed. Traders bear the tax and may face altered execution conditions. Stakers and enrolled liquidity providers bear temporary liquidity restrictions. Long-term users and suppliers may benefit from reduced crash risk, but they may also be affected if stabilization distorts the token's price-discovery process. Treasury participants benefit from reserve solvency, but the reserve itself may intervene in ways that change the market path. This distributional structure should be explicit in protocol governance.
+
+For this reason, the SRF should be accompanied by transparent disclosure rules. Users should know when the dynamic tax activates, how the reserve target is calculated, which supply is eligible for locking, how long locked positions may remain unavailable, and how intervention decisions are bounded. Without such transparency, a stabilization mechanism designed to protect marketplace trust could instead become a source of governance distrust.
+
+\subsection{Price Discovery and Boundary Conditions}
+\label{subsec:discussion_price_discovery}
+
+The SRF aims to dampen short-window instability while preserving long-run price discovery. The empirical results show that this objective is feasible for the well-fit tokens, where the regulated path tracks the broad market trend while reducing short-window drawdowns. However, the limitation cases, RNDR and AKT, show that frequent lock saturation can distort long-run drift when intrinsic volatility is very high.
+
+This boundary condition matters. If the token's price movement reflects a genuine repricing of marketplace fundamentals, aggressive stabilization may over-resist useful price discovery. If the movement reflects temporary liquidity stress, panic selling, or short-window volatility clustering, stabilization may improve marketplace reliability. The SRF is therefore most appropriate for tokens with meaningful service-market utility, sufficient liquidity depth, and governance capacity to manage opt-in supply. It is less appropriate for thinly traded tokens, highly speculative tokens with weak marketplace fundamentals, or tokens whose volatility reflects persistent structural repricing.
+
+The drift metric \(D_T\) and price-discovery distortion \(D_{\mathrm{pd}}\) are therefore essential. A controller that reduces drawdown but heavily distorts the long-run path may not be desirable for marketplace governance. Conversely, a controller that produces moderate drawdown reduction while preserving price discovery may be more acceptable to users, suppliers, and liquidity providers.
+
+\subsection{Adversarial and Implementation Risks}
+\label{subsec:discussion_adversarial}
+
+A deployable SRF would face adversarial behavior. Traders may attempt to front-run predictable reserve interventions. Attackers may manipulate short-window volatility to trigger supply locks or taxes. Liquidity providers may withdraw depth before expected intervention. Oracle delays may cause the controller to react to stale information. Wash trading may affect turnover-based tax inflows. These risks are especially relevant in decentralized markets where actions are observable and execution is often public.
+
+Several safeguards are therefore necessary. First, the price signals used by the controller should rely on manipulation-resistant oracles, such as time-weighted average prices and multi-source market feeds. Second, intervention should remain bounded by rate limits, reserve caps, inventory constraints, and liquidity-depth constraints. Third, tax and lock activation rules should be transparent but not trivially exploitable. Fourth, reserve accounting should be auditable so that users can verify whether tax proceeds are used for stabilization rather than discretionary spending. Fifth, emergency governance changes should be limited by pre-specified procedures to avoid arbitrary intervention.
+
+The current model includes several safeguards, including the deadband, rate limiter, reserve cap, inventory constraint, and liquidity-depth constraint. However, it does not fully model strategic adversaries. Future work should therefore incorporate strategic agents, front-running behavior, oracle latency, gas costs, and liquidity-provider response into the simulation environment.
+
+\subsection{Limitations and Future Extensions}
+\label{subsec:discussion_limitations}
+
+The present study has three main limitations. First, the historical token-panel evaluation uses a recent one-year high-volatility window from 1~May~2024 to 30~April~2025. Although this window contains clustered volatility and directional shocks, it is not a full multi-cycle validation. A natural extension is to evaluate the same SRF kernel over crash-heavy, recovery, and high-volatility windows, such as 2022, 2023, and 2024--2025. This would test whether the mechanism remains effective across broader market regimes.
+
+Second, the model treats the eligible-supply share \(\theta\) as an exogenous scenario parameter. In practice, \(\theta\) is endogenous because participants decide whether to opt in based on rewards, risk, liquidity needs, and expectations about future volatility. A richer model should endogenize opt-in participation through staking rewards, liquidity-provider incentives, or game-theoretic participation constraints.
+
+Third, execution frictions are simplified. The current AMM model captures constant-product price impact and liquidity shocks, but it does not fully incorporate concentrated liquidity, non-zero LP fees, gas costs, sandwich attacks, or cross-market arbitrage. These frictions may increase the cost of reserve intervention or reduce its realized effectiveness. Extending the model to Uniswap V3-style concentrated liquidity and multi-pool execution would provide a more realistic estimate of intervention turnover and slippage.
+
+Despite these limitations, the results support the main claim of the paper: token-mediated marketplaces can use a closed-loop reserve fund, dynamic supply locking, and self-financing taxation to reduce short-horizon drawdowns, provided that the mechanism is evaluated together with its governance costs. The SRF should therefore be seen not only as a control mechanism, but also as a market-design instrument for balancing market protection, liquidity access, reserve solvency, taxation, and price discovery.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper developed and evaluated a Stabilization Reserve Fund (SRF) for token-mediated digital marketplaces. The central premise is that native-token instability is not only a financial-market problem but also a marketplace-design problem: abrupt token-price movements can affect transaction reliability, supplier participation, liquidity provision, treasury capacity, and governance confidence. The proposed SRF addresses this problem as a closed-loop, cost-aware stabilization layer rather than as an algorithmic peg.
+
+The results support three conclusions within the tested settings. First, the SRF is most effective as a drawdown-protection mechanism. In the engineered-crash benchmark and under the upper-bound eligible-supply setting \((\theta=1.00)\), the Full SRF reduces rolling 14-day drawdown by \(17.6\%\), the worst one-day drop by \(18.6\%\), and global maximum drawdown by \(22.5\%\), while maintaining positive reserve balances across all simulation runs. Second, the mechanism shows promising robustness across the tested panel and stress settings: eight of ten panel tokens satisfy the well-fit criteria, and the BME organic-flux stress tests produce stable drawdown-reduction patterns across five regimes. Third, the eligible-supply analysis shows that the SRF remains useful under partial opt-in; at \(\theta=0.50\), it still reduces rolling drawdown by \(11.8\%\).
+
+The results also show that stabilization has measurable costs. In the benchmark stress scenario, the Full SRF imposes a cumulative tax burden of \(1.44\%\) of traded volume, locks eligible supply for approximately \(54\%\) of the one-year horizon, and produces non-trivial price-discovery distortion. These costs are governance variables, not secondary implementation details.
+
+The contribution of this paper is therefore both technical and economic. Technically, it provides a closed-loop stabilization architecture that combines reserve intervention, supply-side dampening, and reserve-refilling taxation. Economically, it provides a governance-oriented evaluation framework for quantifying the trade-off between market protection and user-facing cost. Future work should conduct multi-window historical validation, endogenize opt-in participation, incorporate strategic agents and execution frictions, and evaluate the SRF under more realistic multi-pool and concentrated-liquidity environments.
+
+\section*{Acknowledgments}
+This research was conducted at the Institute for Digital Technology and Economy (Hanoi University of Science and
+Technology). The authors gratefully acknowledge the Institute for the provision of workspace, equipment, and structural
+support that made this work possible.
+
+\section*{Declaration of competing interest}
+
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+\section*{Data availability}
+
+The empirical token-market data used in this study are obtained from publicly available market data sources, including daily price, market capitalization, and trading-volume series retrieved through the CoinGecko API. The processed datasets and simulation outputs required to reproduce the main tables and figures will be released in an anonymized public repository upon acceptance. During peer review, a replication package can be made available to editors and reviewers upon request, subject to third-party data-source constraints.
+
+\section*{Code availability}
+
+The simulation and backtesting code implementing the SRF mechanism, controller ablations, synthetic stress tests, eligible-supply sensitivity analysis, and economic cost metrics will be released in a cleaned and documented replication repository upon acceptance. During peer review, the code can be made available to editors and reviewers upon request.
+
+\section*{Author contributions}
+
+Huy Hai Nguyen: Conceptualization, methodology, software, validation, formal analysis, investigation, data curation, visualization, writing--original draft. Binh Minh Nguyen: Conceptualization, supervision, methodology, writing--review and editing, project administration.
+
+\bibliographystyle{cas-model2-names}
+
+% Loading bibliography database
+
+\bibliography{cas-refs}
+\end{document}
