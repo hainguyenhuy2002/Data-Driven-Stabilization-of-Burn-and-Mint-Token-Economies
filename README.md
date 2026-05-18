@@ -1,33 +1,79 @@
-# Stabilizing Token-Mediated Digital Marketplaces through Closed-Loop Reserve Funds and Dynamic Supply Locking
+# Closed-Loop Reserve Fund and Dynamic Supply Locking for Token-Mediated Marketplaces
 
-**Authors:** Huy Hai Nguyen (Tsinghua University), Binh Minh Nguyen (Hanoi University of Science and Technology)
-
-> This repository contains the full simulation framework, experiment scripts, and LaTeX source for the paper:
->
-> *"Stabilizing Token-Mediated Digital Marketplaces through Closed-Loop Reserve Funds and Dynamic Supply Locking"*
+**Authors:** Huy Hai Nguyen (Tsinghua University) · Binh Minh Nguyen (Hanoi University of Science and Technology)
 
 ---
 
-## Overview
+## What this is
 
-Token-mediated digital marketplaces (storage, compute, data, oracle, liquidity) use native tokens as payment, incentive, and coordination instruments. When these tokens follow **Burn-and-Mint Equilibrium (BME)** designs, adverse price movements can trigger self-reinforcing volatility spirals.
+Token-mediated digital marketplaces — storage, compute, data, oracle, liquidity — use a native token as payment, incentive, and coordination medium. Many of them follow a **Burn-and-Mint Equilibrium (BME)** design: tokens are burned when users consume services and minted to reward suppliers and validators. This keeps supply loosely tied to activity, but it creates a feedback problem: when the token price falls sharply, emissions continue or even accelerate, demand burn drops, and liquidity thins — all at once. The result is a self-reinforcing volatility spiral.
 
-This paper develops and evaluates a closed-loop **Stabilization Reserve Fund (SRF)** that combines four mutually reinforcing mechanisms:
+This repository implements a **Stabilization Reserve Fund (SRF)** — a closed-loop mechanism that sits on top of a BME token economy and dampens short-horizon price shocks. The SRF is not an algorithmic peg and does not try to fix the token price at a predetermined level. Instead it acts as an adaptive circuit breaker: it observes recent market conditions and decides whether to intervene, how hard, and at what cost to the protocol.
 
-| Mechanism | What it does | Paper section |
-|---|---|---|
-| **Reserve-funded PD feedback** | Buys/sells from a protocol reserve proportional to price deviation and momentum | §3.1 |
-| **Volatility-triggered supply lock** | Temporarily reduces the free float of eligible supply when short-window vol spikes above baseline | §3.2 |
-| **Intervention safeguards** | Deadband + rate limiter prevent the SRF itself from adding noise | §3.1 |
-| **Self-financing dynamic tax** | Transaction fee replenishes the reserve when it falls below its target ratio | §3.3 |
+---
 
-### Key results (paper §5)
+## The four mechanisms
 
-Under the upper-bound eligible-supply setting (θ = 1.00), the Full SRF achieves:
-- **−17.6 %** rolling 14-day MaxDD (vs. no intervention)
-- **−18.6 %** worst one-day drop
-- **−22.5 %** global maximum drawdown
-- Average **~26 %** rolling-DrawDown reduction across well-fit panel tokens
+### 1. Reserve-funded PD feedback
+
+The protocol holds a treasury reserve `R` (in USD or a stable asset). When the token price moves sharply relative to its recent trend, the reserve buys or sells tokens in the open market to dampen the move.
+
+The intervention size is determined by a **proportional-derivative (PD) rule**:
+
+```
+u_demand = R · (ω_p · e_t  −  ω_d · v_t)
+```
+
+- `e_t = (P_target − P) / P_target` — how far the current price is from a short-window local reference
+- `v_t = (P − P_prev) / P_prev` — price velocity (the derivative term)
+- `ω_p` is kept intentionally small (0.10) so the SRF does not anchor the price
+- `ω_d` is large (4.0) so the mechanism fires primarily on sudden *moves*, not on sustained drift
+
+The local reference `P_target` is a 7-day simple moving average of recent prices. Because it tracks the trend, the SRF dampens spikes without fighting long-run price discovery.
+
+Two **safeguards** keep the feedback from becoming noisy itself:
+- **Deadband** — interventions are skipped when `|e_t| < 4%` to avoid acting on noise
+- **Rate limiter** — the SRF-induced price change is capped at ±4% per day
+
+### 2. Volatility-triggered supply lock
+
+When short-window realized volatility spikes above the token's own slow baseline, a fraction `ℓ_t` of the eligible supply (treasury holdings, opted-in staking positions, enrolled LP positions) is temporarily locked from trading:
+
+```
+ℓ_t = min(ℓ_max,  γ · max(0,  σ_short − σ_baseline))
+```
+
+- `σ_short` — realized vol of the last 5 daily returns
+- `σ_baseline` — 45-day rolling baseline
+- The lock fires only on *excess* volatility above the token's own norm, so naturally turbulent tokens are not over-locked
+- `ℓ_max = 0.55` caps the lock at 55% of eligible supply
+
+The locked supply is not confiscated or burned. It re-enters circulation once volatility subsides. The effect in the price equation is that the market return is attenuated:
+
+```
+P_{t+1} = P_t · [1  +  r_mkt[t] · (1 − ℓ_t)  +  ΔP_SRF,t]
+```
+
+### 3. Self-financing dynamic tax
+
+Reserve trading depletes `R` over time. To keep the mechanism self-sustaining, a small transaction tax `η_t` is levied on marketplace volume and routed back into the reserve:
+
+```
+η_t = η_max · max(0,  1 − R_t / R_target)
+```
+
+The tax is zero when the reserve is healthy (`R_t ≥ R_target`), and rises toward `η_max = 5%` only when the reserve is depleted. This makes the cost of stabilization visible and proportional to how much the reserve has been used.
+
+### 4. Organic BME flux
+
+Independent of the SRF, the token's supply evolves each day through its native mint/burn schedule:
+
+```
+ΔS_org = M(t) − B(P, U)
+       = μ·S  −  β·S·U(t)·(P / P_target)^elasticity
+```
+
+where `M(t)` is the emission schedule and `B(P, U)` is utility-driven burn that depends on price and demand `U(t)`. The SRF controller acts *after* this organic flux has been applied to supply, so the two mechanisms interact realistically.
 
 ---
 
@@ -35,42 +81,37 @@ Under the upper-bound eligible-supply setting (θ = 1.00), the Full SRF achieves
 
 ```
 .
-├── README.md                        ← this file
-├── requirements.txt                 ← Python dependencies
+├── README.md
+├── requirements.txt
 ├── .gitignore
 │
-├── srf_lab/                         ← Core simulation library (§3)
-│   ├── __init__.py                  ← Public API
-│   ├── config.py                    ← Config dataclass — all hyperparameters (Table 1)
-│   ├── simulator.py                 ← Euler-Maruyama daily loop (§3, Algorithm 1)
-│   ├── controllers.py               ← Full SRF + all baselines (§3.1, §4.3)
-│   ├── bme.py                       ← BME organic mint/burn dynamics (§3.3)
-│   ├── market_impact.py             ← Linear & AMM price-impact models (§3.4)
-│   ├── stress.py                    ← Synthetic stress generators (§4.1)
-│   ├── metrics.py                   ← Evaluation metrics (§4.4)
-│   ├── montecarlo.py                ← Multi-seed Monte Carlo wrapper
-│   └── data_loader.py               ← Token panel + CoinGecko live fetch (§4.2)
+├── srf_lab/                    ← core simulation library
+│   ├── __init__.py             ← public API
+│   ├── config.py               ← all tunable parameters in one dataclass
+│   ├── simulator.py            ← daily Euler-Maruyama loop
+│   ├── controllers.py          ← SRF controller + comparison baselines
+│   ├── bme.py                  ← BME organic mint/burn dynamics
+│   ├── market_impact.py        ← linear and AMM price-impact models
+│   ├── stress.py               ← synthetic return generators (GBM, crash, vol-cluster)
+│   ├── metrics.py              ← evaluation metrics
+│   ├── montecarlo.py           ← multi-seed Monte Carlo wrapper
+│   └── data_loader.py          ← 10-token panel + CoinGecko live fetch
 │
-├── experiments/                     ← Experiment entry points
-│   ├── run_experiments.py           ← Reproduces Figures 4–8 and Tables 2–4
-│   ├── run_token_panel.py           ← Token-panel backtest (§4.5, Table 5)
-│   └── srf_experiments.ipynb        ← Interactive walkthrough notebook
+├── experiments/
+│   ├── run_experiments.py      ← crash simulation, ablation, BME sweep, sensitivity, failure boundary
+│   ├── run_token_panel.py      ← per-token backtest across 10 real tokens
+│   └── srf_experiments.ipynb  ← interactive walkthrough notebook
 │
-├── results/                         ← Generated outputs (reproducible; git-ignored by default)
-│   ├── figs/                        ← fig4_price_trajectory, fig5_reserve_tax, fig6_lock_supply,
-│   │                                    fig7_sensitivity, fig8_failure_boundary  (PDF + PNG)
-│   └── tables/                      ← table2_main_result, table3_bme_scenarios,
-│                                        table4_baseline_ablation, … (CSV + LaTeX)
+├── results/
+│   ├── figs/                   ← generated figures (PDF + PNG)
+│   └── tables/                 ← generated tables (CSV + LaTeX)
 │
-├── paper/                           ← LaTeX source
-│   ├── main.tex                     ← Main manuscript
-│   ├── cas-refs.bib                 ← Bibliography
-│   ├── cas-dc.cls                   ← Elsevier CAS double-column class
-│   ├── cas-sc.cls
-│   ├── cas-common.sty
-│   └── cas-model2-names.bst
+├── paper/                      ← LaTeX manuscript source
+│   ├── main.tex
+│   ├── cas-refs.bib
+│   └── cas-dc.cls  cas-sc.cls  cas-common.sty  cas-model2-names.bst
 │
-└── figs/                            ← Architecture diagrams (used in paper)
+└── figs/                       ← architecture diagrams
     ├── srf_architecture.{pdf,png,svg}
     ├── srf_pipeline.{pdf,drawio}
     ├── srf_control_loop.pdf
@@ -85,14 +126,13 @@ Under the upper-bound eligible-supply setting (θ = 1.00), the Full SRF achieves
 git clone https://github.com/<your-username>/<this-repo>.git
 cd <this-repo>
 
-# (recommended) create a virtual environment
 python -m venv .venv
-source .venv/bin/activate       # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
 pip install -r requirements.txt
 ```
 
-**Requirements:** Python ≥ 3.9, NumPy ≥ 1.24, Pandas ≥ 2.0, Matplotlib ≥ 3.7, Requests ≥ 2.28 (only needed for the live CoinGecko fetch), Jupyter (for the notebook).
+**Requirements:** Python ≥ 3.9, NumPy, Pandas, Matplotlib, Requests (live data only), Jupyter (notebook only).
 
 ---
 
@@ -102,361 +142,276 @@ pip install -r requirements.txt
 from srf_lab import Config, simulate, compute_metrics
 from srf_lab import NoController, FullSRFController
 
+# configure a 365-day simulation: GBM with an engineered flash crash at day 150
 cfg = Config(T=365, seed=42, stress_kind="gbm_crash", bme_scenario="neutral")
-R0  = cfg.rho_0 * cfg.P0 * cfg.S0   # initial reserve (USD)
+R0  = cfg.rho_0 * cfg.P0 * cfg.S0   # initial reserve = 10% of market cap
 
-# unregulated baseline
+# run with no intervention and with the full SRF
 traj_base = simulate(cfg, NoController(R0=R0))
-
-# Full SRF (PD + lock + dynamic tax)
 traj_srf  = simulate(cfg, FullSRFController(R0=R0))
 
-# evaluate
+# compare
 m = compute_metrics(traj_srf, baseline_traj=traj_base)
-print(f"Rolling-14 MaxDD reduction: {m['rolling_dd_reduction']*100:.1f}%")
-print(f"Worst-day drop reduction:   {m['worst_day_reduction']*100:.1f}%")
-print(f"Reserve depletion:          {m['reserve_depletion']*100:.1f}%")
+print(f"Rolling-14 MaxDD reduction : {m['rolling_dd_reduction']*100:+.1f}%")
+print(f"Worst one-day drop reduction: {m['worst_day_reduction']*100:+.1f}%")
+print(f"Reserve depletion           : {m['reserve_depletion']*100:.1f}%")
 ```
 
 ---
 
-## Reproducing paper results
+## Running the experiments
 
-All experiment outputs are written to `results/figs/` and `results/tables/`. Run from the repository root.
-
-### Full reproduction (~2 minutes)
+All outputs go to `results/figs/` and `results/tables/`. Run from the repository root.
 
 ```bash
+# full run — all experiments (~2 min)
 python experiments/run_experiments.py
+
+# quick mode — fewer Monte Carlo seeds (~20 sec)
+python experiments/run_experiments.py --quick
+
+# individual stages
+python experiments/run_experiments.py --stage 1   # crash simulation + headline figures
+python experiments/run_experiments.py --stage 2   # baseline ablation table
+python experiments/run_experiments.py --stage 3   # BME scenario sweep
+python experiments/run_experiments.py --stage 4   # impact-model comparison
+python experiments/run_experiments.py --stage 5   # sensitivity heatmap over (ω_p, ω_d)
+python experiments/run_experiments.py --stage 6   # failure boundary under liquidity shock
+
+# token panel backtest across 10 real tokens
 python experiments/run_token_panel.py
 ```
 
-### Fast approximation (~20 seconds, fewer MC seeds)
-
-```bash
-python experiments/run_experiments.py --quick
-```
-
-### Run a single stage
-
-```bash
-# stage 1 → Figure 4 + Figure 5 + Figure 6 + Table 2
-python experiments/run_experiments.py --stage 1
-
-# stage 2 → Table 4 (baseline ablation)
-python experiments/run_experiments.py --stage 2
-
-# stage 3 → Table 3 (BME scenario sweep)
-python experiments/run_experiments.py --stage 3
-
-# stage 4 → Table (impact-model comparison)
-python experiments/run_experiments.py --stage 4
-
-# stage 5 → Figure 7 (sensitivity heatmap)
-python experiments/run_experiments.py --stage 5
-
-# stage 6 → Figure 8 (failure boundary)
-python experiments/run_experiments.py --stage 6
-```
-
 ---
 
-## Figures and tables — code mapping
+## Module guide
 
-Every figure and table in the paper is generated by a specific function in `experiments/run_experiments.py`. The table below shows the exact correspondence.
+### `srf_lab/config.py` — simulation parameters
 
-| Paper item | Function | Output file |
-|---|---|---|
-| **Figure 4** — Price trajectory under engineered crash | `run_headline()` | `results/figs/fig4_price_trajectory.{pdf,png}` |
-| **Figure 5** — Reserve balance and dynamic tax rate | `run_headline()` | `results/figs/fig5_reserve_tax.{pdf,png}` |
-| **Figure 6** — Lock ratio and effective supply | `run_headline()` | `results/figs/fig6_lock_supply.{pdf,png}` |
-| **Figure 7** — Sensitivity heatmap (ω_p, ω_d) | `run_sensitivity()` | `results/figs/fig7_sensitivity.{pdf,png}` |
-| **Figure 8** — Failure boundary (ρ₀, liq-shock severity) | `run_failure()` | `results/figs/fig8_failure_boundary.{pdf,png}` |
-| **Table 2** — Main result (no SRF vs. Full SRF) | `run_headline()` | `results/tables/table2_main_result.{csv,tex}` |
-| **Table 3** — BME organic-flux scenarios | `run_bme_scenarios()` | `results/tables/table3_bme_scenarios.{csv,tex}` |
-| **Table 4** — Baseline ablation | `run_ablation()` | `results/tables/table4_baseline_ablation.{csv,tex}` |
-| **Table (impact models)** | `run_impact()` | `results/tables/table_impact_models.{csv,tex}` |
-| **Token panel tables** | `experiments/run_token_panel.py` | `results/tables/table_token_panel.csv`, `table_token_groups.csv`, `table_unfit_tokens.csv` |
-
----
-
-## Code-to-paper mapping (module level)
-
-### `srf_lab/config.py` → Paper Table 1 (Hyperparameter table)
-
-`Config` is a Python dataclass holding every tunable parameter used across the paper. The defaults match the values reported in Table 1.
+A single `Config` dataclass holds every tunable knob. Pass it to `simulate()` or `monte_carlo()`. Override only what you need:
 
 ```python
-@dataclass
-class Config:
-    T: int = 365          # horizon (daily steps)
-    P0: float = 1.0       # initial price
-    S0: float = 5_000_000 # initial circulating supply
-    rho_0: float = 0.10   # R_0 / MC_0 — initial reserve fraction
+from srf_lab import Config
 
-    # PD controller (§3.1)
-    omega_p: float = 0.10  # proportional gain (small: circuit-breaker, not anchor)
-    omega_d: float = 4.0   # derivative gain (strong velocity damping)
-    deadband: float = 0.04 # ignore deviations < 4%
-    rate_limit: float = 0.04
-
-    # Volatility-triggered escrow lock (§3.2)
-    gamma: float = 20.0         # lock sensitivity to excess vol
-    ell_max: float = 0.55       # maximum lock fraction (55%)
-    lock_vol_window: int = 5    # short window for realized vol
-    lock_baseline_window: int = 45
-
-    # Self-financing dynamic tax (§3.3)
-    tax_max: float = 0.05
-    rho_target: float = 0.15   # target reserve-to-MC ratio
-
-    # Market impact (§3.4)
-    impact_model: str = "linear"   # "linear" | "amm"
-    liquidity_frac: float = 0.10
-    kappa: float = 0.5
-    ...
-```
-
----
-
-### `srf_lab/controllers.py` → Paper §3.1 (SRF control law) and §4.3 (baselines)
-
-All controllers implement the same `.step()` interface so the simulator loop is controller-agnostic. The full hierarchy is:
-
-```
-_ControllerBase
-├── NoController              — no intervention (§4.3 baseline B0)
-├── PassiveThresholdController— buy/sell on fixed % threshold (§4.3 baseline B1)
-├── ProportionalController    — proportional-only, ω_d = 0 (§4.3 ablation A1)
-├── PDController              — PD only, no lock, no tax (§4.3 ablation A2)
-├── LockOnlyController        — escrow lock only, no trading (§4.3 ablation A3)
-├── SRFNoTaxController        — PD + lock + safeguards, no tax (§4.3 ablation A4)
-└── FullSRFController         — all four mechanisms (§3, proposed model)
-```
-
-The **core PD trade rule** (§3.1, Eq. 2–4) lives in `_ControllerBase._execute_pd()`:
-
-```
-u_demand = R · (ω_p · e_t  −  ω_d · v_t)
-```
-
-where `e_t = (P_target − P) / P_target` is the signed deviation and `v_t = (P − P_prev) / P_prev` is the velocity. The demand is then passed through the market-impact model (see below), clipped by the rate limiter, and the reserve is updated.
-
-The **lock ratio** (§3.2, Eq. 6) is computed by `_compute_lock()`:
-
-```
-ℓ_t = min(ℓ_max,  γ · max(0,  σ_short − σ_baseline))
-```
-
-where `σ_short` is the realized volatility of the last 5 daily returns and `σ_baseline` is the 45-day rolling baseline. The lock fires only on *excess* volatility — naturally turbulent tokens are not over-locked.
-
-The **dynamic tax** (§3.3, Eq. 7) in `FullSRFController._tax_refill()`:
-
-```
-η_t = η_max · max(0, 1 − R_t / R_target)
-```
-
----
-
-### `srf_lab/simulator.py` → Paper §3 (Algorithm 1, Euler-Maruyama loop)
-
-`simulate(cfg, controller, ...)` is the main entry point. Each daily step:
-
-1. **Local reference price** `P_target[t]` — a short-window SMA (7-day by default) that *tracks* the trend instead of anchoring at a fixed level. This is the key design choice that allows long-run price discovery while dampening sudden moves.
-2. **Excess volatility** `σ_excess` — fires the lock only when short-window vol exceeds the token's own 45-day baseline.
-3. **Organic BME flux** (§3.3) — mint/burn changes supply *before* the controller acts.
-4. **Controller `.step()`** — produces `(ΔP_SRF, ℓ_t, η_t, u_actual)`.
-5. **Price update** (Euler-Maruyama):
-
-```
-P_{t+1} = P_t · [1  +  r_mkt[t] · (1 − ℓ_t)  +  ΔP_SRF,t]
-```
-
-The market shock `r_mkt` is *attenuated* by the lock fraction `ℓ_t` before being applied.
-
----
-
-### `srf_lab/bme.py` → Paper §3.3 (BME organic dynamics)
-
-Implements five canonical BME scenarios (paper Table in §4.1):
-
-| Scenario key | Description | μ (daily mint) | β (daily burn) |
-|---|---|---|---|
-| `"off"` | Constant supply (ablation baseline) | 0 | 0 |
-| `"neutral"` | Balanced mint/burn | 0.10 % | 0.10 % |
-| `"emission_heavy"` | Dilutive emissions exceed burn | 0.30 % | 0.10 % |
-| `"burn_heavy"` | Deflationary, utility-driven burn dominates | 0.10 % | 0.30 % |
-| `"reward_inflation"` | **Pathological**: emissions inflate when price falls | adaptive | 0.10 % |
-| `"demand_collapse"` | Utility demand collapses mid-run | 0.10 % | adaptive |
-
-The net supply flux per day (§3.3, Eq. 1):
-
-```
-ΔS_org = M(t) − B(P, U)
-       = μ·S  −  β·S·U(t)·(P / P_target)^elasticity
-```
-
----
-
-### `srf_lab/market_impact.py` → Paper §3.4 (Market-impact models)
-
-Two models, selected via `Config.impact_model`:
-
-**`LinearImpact`** (default):
-```
-ΔP/P = sign(u) · min(|u|, cap) · κ / LD_t
-```
-where `LD_t = liquidity_frac · MC_t` and κ = 0.5 (slippage coefficient).
-
-**`AMMImpact`** (constant-product AMM):
-```
-ΔP/P = (x + u)² / x²  − 1      [for a buy of u USD, x = LD_t]
-```
-
-Both accept a `LiquidityShock` that temporarily drops `LD_t` by a configurable fraction (e.g., 60%) over a window of days — modelling LP flight during a crash.
-
----
-
-### `srf_lab/stress.py` → Paper §4.1 (Stress scenarios)
-
-Three synthetic return generators:
-
-| Function | Scenario | Paper name |
-|---|---|---|
-| `gbm_returns()` | Plain Geometric Brownian Motion | GBM baseline |
-| `engineered_crash()` | GBM + superimposed flash crash at day `crash_t` | **Benchmark scenario** (Figures 4–6) |
-| `vol_clustering()` | Two-state regime-switching (GARCH-style) | Volatility-cluster scenario (Figures 7–8) |
-
-The benchmark crash (§4.1): crash at day 150 over 10 days, `crash_mean = −12%/day`, `crash_sigma = 5%`.
-
----
-
-### `srf_lab/metrics.py` → Paper §4.4 (Evaluation metrics)
-
-`compute_metrics(traj, baseline_traj=None)` returns a flat dict with:
-
-| Key | Metric | Equation |
-|---|---|---|
-| `ann_vol` | Annualized volatility | std(log-returns) × √365 |
-| `max_drawdown` | Global peak-to-trough drawdown | max((peak − P) / peak) |
-| `rolling_dd_14` | **Primary metric**: mean rolling-14-day MaxDD | mean over windows |
-| `rolling_vol_14` | Mean rolling-14-day annualized vol | mean over windows |
-| `worst_day_pct` | Largest single-day drop | max(|negative return|) |
-| `downside_vol` | Downside deviation | std(negative log-returns) × √365 |
-| `expected_shortfall_5` | CVaR at 5% tail | mean of worst 5% daily returns |
-| `reserve_depletion` | 1 − R_T / R_0 | fraction of reserve consumed |
-| `intervention_cost` | Σ|u_actual| (USD) | total reserve-side turnover |
-| `avg_lock` / `peak_lock` | Average/peak supply lock fraction | mean/max of ℓ_t |
-| `avg_tax` | Average daily tax rate | mean of η_t |
-| `drift_preservation` | \|log(P_T^SRF) − log(P_T^base)\| | terminal log-price distance |
-| `rolling_dd_reduction` | Relative rolling-DD improvement vs. baseline | (base − srf) / base |
-
-The **rolling-14-day MaxDD** (`rolling_dd_14`) is the paper's *primary* metric for short-horizon protection because it captures sudden spike-to-trough moves rather than cumulative long-run decline.
-
----
-
-### `srf_lab/data_loader.py` → Paper §4.2 (Token panel)
-
-Contains the 10-token panel (Table in §4.2) and two data modes:
-
-**`fetch_real(coin_ids, days=365)`** — pulls live OHLCV from CoinGecko v3 with exponential back-off on rate limits. Caches to CSV if `cache_dir` is set.
-
-**`load_calibrated(panel, days=365, seed=42)`** — deterministic synthetic series calibrated to each token's published 2024 annualised volatility, drift, and volume-to-MC ratio. Used for offline / reproducible evaluation. Returns the identical DataFrame schema as `fetch_real`.
-
-**Token panel** (5 BME/DePIN + 5 volatile DeFi):
-
-| Ticker | Group | σ_ann | Notes |
-|---|---|---|---|
-| RNDR | BME/DePIN | 130% | Render Network — GPU compute |
-| HNT  | BME/DePIN | 120% | Helium — wireless |
-| FIL  | BME/DePIN |  95% | Filecoin — storage |
-| AKT  | BME/DePIN | 140% | Akash — cloud compute |
-| AR   | BME/DePIN | 110% | Arweave — permanent storage |
-| AAVE | DeFi-volatile | 85% | Lending |
-| COMP | DeFi-volatile | 95% | Compound |
-| UNI  | DeFi-volatile | 80% | Uniswap |
-| CRV  | DeFi-volatile | 105% | Curve |
-| BAND | DeFi-volatile | 115% | Band Protocol oracle |
-
-**Suitability criteria** (§4.5): a token is classified *well-fit* if:
-- Drift preservation `|log(P_T^SRF) − log(P_T^base)| < 1.0` (ratio stays in [0.37, 2.71])
-- Rolling-DD reduction > 15%
-
----
-
-### `srf_lab/montecarlo.py` → Paper §4.1 (Monte Carlo evaluation)
-
-`monte_carlo(cfg, ControllerCls, n_runs=50)` runs the controller on `n_runs` independently seeded copies of the configuration and returns a DataFrame of per-run metrics with baseline-relative reductions.
-
-```python
-from srf_lab import Config, monte_carlo, FullSRFController
-
-cfg = Config(T=365, stress_kind="gbm_crash", bme_scenario="neutral")
-df  = monte_carlo(cfg, FullSRFController, n_runs=30)
-print(df[["ann_vol", "rolling_dd_14", "rolling_dd_reduction"]].describe())
-```
-
----
-
-## Configuration reference
-
-The most commonly changed parameters (all in `Config`):
-
-```python
 cfg = Config(
-    # Horizon & initial state
-    T      = 365,         # simulation days
-    P0     = 1.0,         # initial price (USD)
-    S0     = 5_000_000,   # initial circulating supply
-    rho_0  = 0.10,        # initial reserve as fraction of market cap
+    T      = 365,          # simulation horizon (days)
+    P0     = 1.0,          # initial token price (USD)
+    S0     = 5_000_000,    # initial circulating supply
+    rho_0  = 0.10,         # initial reserve as a fraction of market cap
 
-    # PD gains — derivative-dominated is the paper default
-    omega_p = 0.10,       # proportional gain (small keeps long-run drift free)
-    omega_d = 4.0,        # derivative gain   (strong velocity damping)
-    deadband    = 0.04,   # ignore |e_t| < 4%
-    rate_limit  = 0.04,   # max |ΔP_SRF| per day
+    # PD controller
+    omega_p    = 0.10,     # proportional gain — keep small so price stays free to drift
+    omega_d    = 4.0,      # derivative gain — large for strong velocity damping
+    deadband   = 0.04,     # ignore deviations smaller than 4%
+    rate_limit = 0.04,     # maximum SRF-induced price move per day
 
-    # Supply lock
-    gamma              = 20.0,  # lock sensitivity
-    ell_max            = 0.55,  # max lock fraction
-    lock_vol_window    = 5,     # short vol window (days)
-    lock_baseline_window = 45,  # slow baseline window (days)
+    # supply lock
+    gamma                = 20.0,   # how aggressively excess vol triggers the lock
+    ell_max              = 0.55,   # maximum lock fraction (55% of eligible supply)
+    lock_vol_window      = 5,      # short window for realized vol (days)
+    lock_baseline_window = 45,     # slow baseline window (days)
 
-    # Dynamic tax
-    tax_max    = 0.05,   # η_max
-    rho_target = 0.15,  # target R / MC
+    # dynamic tax
+    tax_max    = 0.05,     # maximum daily tax rate (5%)
+    rho_target = 0.15,     # target reserve-to-market-cap ratio
 
-    # Local reference target
-    target_kind = "sma_short",  # 7-day SMA (default)
+    # local reference target type
+    target_kind = "sma_short",  # 7-day SMA (tracks trend, doesn't anchor price)
     sma_window  = 7,
 
-    # Market impact
+    # market impact model
     impact_model   = "linear",  # "linear" | "amm"
-    liquidity_frac = 0.10,
-    kappa          = 0.5,
+    liquidity_frac = 0.10,      # on-chain liquidity as fraction of market cap
+    kappa          = 0.5,       # slippage coefficient
 
-    # BME scenario
+    # BME organic dynamics
     bme_scenario = "neutral",
-    # options: "off" | "neutral" | "emission_heavy" | "burn_heavy"
+    # choices: "off" | "neutral" | "emission_heavy" | "burn_heavy"
     #          | "reward_inflation" | "demand_collapse"
 
-    # Stress scenario
+    # stress scenario for the exogenous return series
     stress_kind = "gbm_crash",
-    # options: "gbm" | "gbm_crash" | "vol_cluster" | "real"
-    crash_t     = 150,
-    crash_len   = 10,
-    crash_mean  = -0.12,
+    # choices: "gbm" | "gbm_crash" | "vol_cluster" | "real"
+    crash_t     = 150,      # crash starts at day 150
+    crash_len   = 10,       # lasts 10 days
+    crash_mean  = -0.12,    # −12%/day during the crash
     crash_sigma = 0.05,
 )
 ```
 
 ---
 
+### `srf_lab/controllers.py` — SRF and comparison baselines
+
+All controllers share the same `.step()` interface so they drop into the simulator without any other changes.
+
+```
+_ControllerBase
+├── NoController                — no intervention at all
+├── PassiveThresholdController  — buy/sell a fixed chunk whenever price crosses a threshold
+├── ProportionalController      — P-only (ω_d = 0), no lock, no tax
+├── PDController                — full PD trading, no lock, no tax
+├── LockOnlyController          — only the supply lock, no trading
+├── SRFNoTaxController          — PD + lock + safeguards, without the dynamic tax
+└── FullSRFController           — all four mechanisms (the proposed design)
+```
+
+Running a comparison is straightforward:
+
+```python
+from srf_lab import Config, simulate, compute_metrics
+from srf_lab import NoController, LockOnlyController, FullSRFController
+
+cfg = Config()
+R0  = cfg.rho_0 * cfg.P0 * cfg.S0
+
+for cls in [NoController, LockOnlyController, FullSRFController]:
+    traj = simulate(cfg, cls(R0=R0))
+    m    = compute_metrics(traj)
+    print(f"{cls.__name__:30s}  MaxDD={m['max_drawdown']*100:.1f}%  "
+          f"rolling-DD={m['rolling_dd_14']*100:.1f}%")
+```
+
+---
+
+### `srf_lab/simulator.py` — daily simulation loop
+
+`simulate(cfg, controller)` steps through `T` days. Each day:
+
+1. Compute the local reference price `P_target` (7-day SMA by default).
+2. Compute excess realized volatility `σ_excess = max(0, σ_5day − σ_45day)`.
+3. Apply organic BME mint/burn flux to supply.
+4. Call `controller.step()` → returns `(ΔP_SRF, ℓ_t, η_t, u_actual)`.
+5. Update price: `P_{t+1} = P_t · [1 + r_mkt[t] · (1 − ℓ_t) + ΔP_SRF,t]`.
+
+Returns a `TrajectoryResult` with full daily arrays for price, supply, reserve, lock ratio, tax rate, and trade sizes.
+
+The exogenous return series `r_mkt` can be synthetic (GBM, crash, vol-cluster) or real historical returns passed in by the caller. Oracle delay (lag between true price and observed price) is also supported.
+
+---
+
+### `srf_lab/bme.py` — BME organic dynamics
+
+Six built-in supply scenarios cover the range from stable to pathological:
+
+| Key | Description |
+|---|---|
+| `"off"` | Constant supply — organic BME disabled |
+| `"neutral"` | Balanced mint and burn, supply roughly stable |
+| `"emission_heavy"` | Dilutive emissions outpace utility burn (typical early-phase DePIN) |
+| `"burn_heavy"` | Deflationary: utility-driven burn dominates emissions |
+| `"reward_inflation"` | **Pathological** — emissions ramp up when price falls, amplifying spirals |
+| `"demand_collapse"` | Utility demand evaporates midway through the run, burn disappears |
+
+Each scenario is a subclass of `BMEScenario` with a `utility_demand(P, P_target, t, T)` method. You can add custom scenarios the same way.
+
+---
+
+### `srf_lab/market_impact.py` — how SRF trades move the price
+
+Two price-impact models are available:
+
+**Linear** (default) — slippage proportional to trade size relative to on-chain liquidity:
+```
+ΔP/P = sign(u) · min(|u|, cap) · κ / LD_t
+```
+
+**AMM** (constant-product) — closed-form slippage from a `xy = k` pool:
+```
+ΔP/P = (LD_t + u)² / LD_t²  − 1
+```
+
+Both support a `LiquidityShock` — a temporary drop in on-chain liquidity depth (e.g., LPs withdrawing during a crash). This lets you stress-test the SRF under degraded market conditions.
+
+---
+
+### `srf_lab/stress.py` — synthetic return generators
+
+| Function | What it produces |
+|---|---|
+| `gbm_returns()` | Plain GBM — drift + noise |
+| `engineered_crash()` | GBM with a superimposed flash crash at a chosen day |
+| `vol_clustering()` | Two-state regime-switching: alternating low- and high-vol windows |
+
+Pass real historical returns directly to `simulate(..., r_mkt=array)` to run backtests on actual token data.
+
+---
+
+### `srf_lab/metrics.py` — evaluation
+
+`compute_metrics(traj, baseline_traj=None)` returns a flat dictionary. The most important metrics:
+
+| Key | What it measures |
+|---|---|
+| `rolling_dd_14` | Mean of rolling 14-day peak-to-trough drawdown — the primary short-horizon metric |
+| `rolling_vol_14` | Mean of rolling 14-day annualized volatility |
+| `worst_day_pct` | Largest single-day price drop |
+| `max_drawdown` | Global peak-to-trough over the full run |
+| `ann_vol` | Annualized volatility of daily log-returns |
+| `expected_shortfall_5` | CVaR at the 5% tail |
+| `reserve_depletion` | Fraction of the initial reserve consumed (`1 − R_T / R_0`) |
+| `intervention_cost` | Total absolute USD traded by the SRF |
+| `avg_lock` / `peak_lock` | Average and peak supply lock fraction |
+| `avg_tax` | Average daily tax rate |
+| `drift_preservation` | `|log(P_T^SRF) − log(P_T^base)|` — how far the regulated run drifts from the unregulated one |
+| `rolling_dd_reduction` | Relative rolling-DD improvement versus the baseline run |
+
+When `baseline_traj` is supplied (a no-intervention run on the same seed), the reduction metrics are computed automatically.
+
+---
+
+### `srf_lab/data_loader.py` — token data
+
+Two modes with an identical output schema:
+
+**Live fetch** — pulls daily price, market cap, and volume from CoinGecko v3 with exponential back-off and optional local CSV cache:
+```python
+from srf_lab.data_loader import fetch_real
+data = fetch_real(["render-token", "helium"], days=365, cache_dir="data/cache")
+```
+
+**Calibrated synthetic** — seed-deterministic series whose annualized volatility and drift match each token's published 2024 profile. Reproduces experiments offline without any network access:
+```python
+from srf_lab.data_loader import load_calibrated, PANEL
+data = load_calibrated(PANEL, seed=42)
+```
+
+The built-in 10-token panel covers two groups:
+
+| Ticker | Type | Ann. vol |
+|---|---|---|
+| RNDR | BME/DePIN (GPU compute) | 130% |
+| HNT  | BME/DePIN (wireless) | 120% |
+| FIL  | BME/DePIN (storage) | 95% |
+| AKT  | BME/DePIN (cloud compute) | 140% |
+| AR   | BME/DePIN (permanent storage) | 110% |
+| AAVE | DeFi-volatile (lending) | 85% |
+| COMP | DeFi-volatile (lending) | 95% |
+| UNI  | DeFi-volatile (DEX) | 80% |
+| CRV  | DeFi-volatile (DEX) | 105% |
+| BAND | DeFi-volatile (oracle) | 115% |
+
+---
+
+### `srf_lab/montecarlo.py` — multi-seed evaluation
+
+`monte_carlo(cfg, ControllerCls, n_runs=50)` runs the same configuration across `n_runs` independent random seeds and returns a DataFrame of per-run metrics — useful for checking robustness rather than cherry-picking a single seed.
+
+```python
+from srf_lab import Config, monte_carlo, FullSRFController
+
+cfg = Config(T=365, stress_kind="gbm_crash", bme_scenario="neutral")
+df  = monte_carlo(cfg, FullSRFController, n_runs=30)
+print(df[["rolling_dd_14", "rolling_dd_reduction", "reserve_depletion"]].describe())
+```
+
+---
+
 ## Extending the framework
 
-### Adding a new controller
+### New controller
 
-Subclass `_ControllerBase` in `srf_lab/controllers.py` and implement `step()`:
+Subclass `_ControllerBase` in `srf_lab/controllers.py` and implement `step()`. The helper `_execute_pd()` handles PD demand calculation and reserve accounting for you:
 
 ```python
 from srf_lab.controllers import _ControllerBase, StepResult
@@ -468,7 +423,6 @@ class MyController(_ControllerBase):
     def step(self, *, P, P_prev, P_target, MC, Vol, t, impact,
              ell_max, gamma_lock, deadband, rate_limit,
              tax_max, rho_target, omega_p, omega_d, **kw) -> StepResult:
-        # your logic here
         delta, u_act = self._execute_pd(
             P=P, P_prev=P_prev, P_target=P_target, MC=MC, t=t,
             impact=impact, deadband=deadband, rate_limit=rate_limit,
@@ -477,19 +431,19 @@ class MyController(_ControllerBase):
         return StepResult(delta_P_srf=delta, u_actual_usd=u_act, R_after=self.R)
 ```
 
-### Adding a new BME scenario
+### New BME scenario
 
-Add an entry to `_SCENARIO_MAP` in `srf_lab/bme.py` and subclass `BMEScenario` with a custom `utility_demand()` method.
+Add an entry to `_SCENARIO_MAP` in `srf_lab/bme.py` and subclass `BMEScenario` with a `utility_demand()` method.
 
-### Adding a new stress scenario
+### New stress scenario
 
-Add a function to `srf_lab/stress.py` returning a `np.ndarray` of length `T` daily returns, then add a branch in `simulator._build_returns()`.
+Add a function to `srf_lab/stress.py` that returns a `np.ndarray` of length `T` daily returns, then add a branch in `simulator._build_returns()`.
 
 ---
 
-## Compiling the paper
+## Compiling the LaTeX manuscript
 
-The LaTeX source is in `paper/`. It references figure files relative to the **repository root** (e.g., `\includegraphics{figs/srf_architecture}`), so compile from the root:
+The source is in `paper/`. Figure files are referenced relative to the repository root, so compile from there:
 
 ```bash
 cd <repo-root>
@@ -497,21 +451,13 @@ pdflatex paper/main.tex
 bibtex paper/main
 pdflatex paper/main.tex
 pdflatex paper/main.tex
-```
-
-Or use `latexmk`:
-
-```bash
+# or simply:
 latexmk -pdf -outdir=paper paper/main.tex
 ```
-
-**Required packages:** `svg`, `listings`, `xcolor`, `algorithm`, `algpseudocode`, `amsmath`, `natbib` (numbers style), Elsevier CAS class (`cas-dc.cls`, included).
 
 ---
 
 ## Citation
-
-If you use this code or build on the ideas in the paper, please cite:
 
 ```bibtex
 @article{nguyen2025srf,
@@ -527,5 +473,5 @@ If you use this code or build on the ideas in the paper, please cite:
 
 ## License
 
-The simulation code (`srf_lab/`, `experiments/`) is released under the **MIT License**.
-The LaTeX source (`paper/`) is subject to the Elsevier CAS class license.
+Simulation code (`srf_lab/`, `experiments/`) — MIT License.
+LaTeX source (`paper/`) — subject to the Elsevier CAS class license.
