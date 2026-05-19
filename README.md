@@ -167,10 +167,10 @@ print(f"Reserve depletion           : {m['reserve_depletion']*100:.1f}%")
 All outputs go to `results/figs/` and `results/tables/`. Run from the repository root.
 
 ```bash
-# full run — all experiments (~2 min)
+# full run — all experiments
 python experiments/run_experiments.py
 
-# quick mode — fewer Monte Carlo seeds (~20 sec)
+# quick mode — fewer Monte Carlo seeds
 python experiments/run_experiments.py --quick
 
 # individual stages
@@ -481,11 +481,11 @@ For the code itself, please also cite the repository:
                for Token-Mediated Marketplaces — Simulation Code},
   year      = {2025},
   url       = {https://github.com/hainguyenhuy2002/Data-Driven-Stabilization-of-Burn-and-Mint-Token-Economies},
-  doi       = {10.5281/zenodo.XXXXXXX}
+  doi       = {10.5281/zenodo.20275874}
 }
 ```
 
-> Replace `10.5281/zenodo.XXXXXXX` with your actual Zenodo DOI before publishing.
+
 
 ---
 
